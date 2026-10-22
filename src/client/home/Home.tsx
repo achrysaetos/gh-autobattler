@@ -15,6 +15,7 @@ const FAILURE_TEXT: Record<Failure['error'], string | null> = {
   rate_limited: 'You have started several battles in a short time. Give it a minute, then try again.',
   rooms_full: 'Every field is in use right now. Fields free up as battles end, usually within a few minutes.',
   github_unavailable: 'GitHub is not answering, so the armies cannot be mustered yet. Try again in a moment.',
+  internal_error: 'Something broke on our side while mustering. Try again in a moment.',
   invalid_request: null,
 };
 

@@ -144,7 +144,7 @@ export async function buildHttp(
       if (!clientError) deps.log.error('room creation failed', { error: err.message });
       const body: CreateRoomResponse = clientError
         ? { ok: false, error: 'invalid_request', message: err.message }
-        : { ok: false, error: 'github_unavailable', message: 'room creation failed, try again shortly' };
+        : { ok: false, error: 'internal_error', message: 'room creation failed, try again shortly' };
       return reply.code(clientError ? 400 : 503).send(body);
     },
   }, async (req, reply) => {

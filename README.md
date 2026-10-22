@@ -53,6 +53,8 @@ For the real sign-in flow, create a GitHub OAuth app with the callback URL `${PU
 | `DEMO_PLAYERS` | `0` | Number of synthetic players to seed. |
 | `ROUND_HOURS` | `168` | Round length. |
 | `INTERMISSION_MINUTES` | `60` | Pause between rounds. |
+| `ROOM_MINUTES` | `10` | Length of a public room battle. |
+| `ROOM_MAX_LIVE` | `20` | Live rooms allowed at once. |
 
 ## Test
 

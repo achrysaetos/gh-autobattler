@@ -88,7 +88,7 @@ export type FighterRejection = 'not_found' | 'bot' | 'too_new' | 'no_public_acti
 
 export type CreateRoomResponse =
   | { ok: true; slug: string }
-  | { ok: false; error: 'invalid_request' | 'rate_limited' | 'rooms_full' | 'github_unavailable'; message: string }
+  | { ok: false; error: 'invalid_request' | 'rate_limited' | 'rooms_full' | 'github_unavailable' | 'internal_error'; message: string }
   | { ok: false; error: 'rejected_fighters'; rejected: { login: string; reason: FighterRejection }[] };
 
 export interface RoomFighter {

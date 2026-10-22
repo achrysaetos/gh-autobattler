@@ -14,7 +14,7 @@ async function getJson<T>(url: string): Promise<T | null> {
   return (await res.json()) as T;
 }
 
-const UNREACHABLE: CreateRoomResponse = { ok: false, error: 'github_unavailable', message: 'The war office did not answer. Try again in a moment.' };
+const UNREACHABLE: CreateRoomResponse = { ok: false, error: 'internal_error', message: 'The war office did not answer. Try again in a moment.' };
 
 export const httpApi: Api = {
   async standings() {
