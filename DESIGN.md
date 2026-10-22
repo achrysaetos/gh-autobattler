@@ -80,6 +80,17 @@ Nobody steers. Each faction runs a war council every 3 seconds that gives each p
 - After a round, a 1 hour intermission shows the results. The next round re-forms factions on a new map.
 - Lifetime records persist across rounds. They include rounds played and won, kills, losses, captures, peak soldiers, and medals.
 
+## Rooms
+
+A room is a public skirmish anyone can start without signing in. You enter 2 to 8 GitHub usernames and get a shareable link, and those developers' armies fight it out.
+
+- **Fighters.** Each username is resolved through the server token, checked against the same eligibility rules, and given an army by the same Articles of War. A username with no counted public activity in the last 28 days is rejected, because an empty army cannot fight. Contributions are cached for 10 minutes per user.
+- **One faction per fighter.** A room has `F` equal to its number of fighters, each named `@login`. The map, garrisons, and combat are the campaign's.
+- **Length.** A room lasts 10 minutes and the highest score wins. Holding every stronghold and the Citadel for 60 seconds wins early. Armies are fixed when the room is created.
+- **Bounded cost.** At most 20 live rooms, at most 1200 units per room, and room creation rate-limited per client. An ended room stops simulating and keeps its final snapshot for spectators.
+- **Separate from the campaign.** Adding someone to a room does not enlist them in the campaign, and room results do not change lifetime records. Rooms use the same round storage, input log, snapshots, and lockstep spectating, so they survive restarts.
+- **Privacy.** A room shows only what the campaign shows for any player: login, avatar, and aggregated public contributions.
+
 ## Architecture
 
 ```
