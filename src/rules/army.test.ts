@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeArmy, infantryForCommits } from './army.ts';
+import { computeArmy, infantryForCommits, noGainReason } from './army.ts';
 import { addDays, parseIsoDay } from './days.ts';
 import type { Contribution, ContributionKind, IsoDay } from './types.ts';
 
@@ -84,5 +84,17 @@ describe('computeArmy', () => {
   it('is a pure function of its inputs', () => {
     const input = [c('commits', today, 3), c('review', addDays(today, -5), 2)];
     expect(computeArmy(input, today)).toEqual(computeArmy([...input].reverse(), today));
+  });
+});
+
+describe('noGainReason', () => {
+  const ledger = (infantry: number) => ({ day: '2026-10-22' as IsoDay, commits: 0, mergedPrs: 0, reviews: 0, infantry, archers: 0, cavalry: 0 });
+  it('names the next commit threshold for infantry', () => {
+    expect(noGainReason(ledger(2), ['commits'])).toBe('next infantry at 4 commits today');
+    expect(noGainReason(ledger(3), ['commits'])).toBe('next infantry at 8 commits today');
+  });
+  it('reports the cap once infantry is maxed or only capped kinds arrived', () => {
+    expect(noGainReason(ledger(4), ['commits'])).toBe('daily infantry cap reached');
+    expect(noGainReason(ledger(1), ['review'])).toBe('daily cap reached');
   });
 });

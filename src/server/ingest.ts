@@ -1,7 +1,7 @@
 import type { FeedItem } from '../protocol.ts';
-import { inWindow } from '../rules/army.ts';
+import { inWindow, noGainReason } from '../rules/army.ts';
 import { isoDay } from '../rules/days.ts';
-import type { Army, Contribution, ContributionKind, Fielded } from '../rules/types.ts';
+import type { Army, Contribution, ContributionKind, DayLedger, Fielded } from '../rules/types.ts';
 import type { Armory } from './armory.ts';
 import type { ContributionDelta, Store } from './db.ts';
 import type { Engine } from './engine.ts';
@@ -56,7 +56,7 @@ export class Ingest {
           kind: 'reinforce',
           playerId,
           faction,
-          message: reinforceLine(player.login, gained, fresh),
+          message: reinforceLine(player.login, gained, fresh, army.days.at(-1)),
           url: fresh.find((d) => d.contribution.kind !== 'commits')?.contribution.url ?? fresh[0]!.contribution.url,
           units: gained,
         });
@@ -93,7 +93,7 @@ export function enlistLine(login: string, army: Army): string {
   return parts.length === 0 ? `@${login} enlists, awaiting their first orders` : `@${login} enlists with ${parts.join(', ')}`;
 }
 
-export function reinforceLine(login: string, gained: Fielded, fresh: readonly ContributionDelta[]): string {
+export function reinforceLine(login: string, gained: Fielded, fresh: readonly ContributionDelta[], today?: DayLedger): string {
   const groups = new Map<string, { kind: ContributionKind; repo: string; n: number }>();
   for (const d of fresh) {
     const key = `${d.contribution.kind}\u0000${d.contribution.repo}`;
@@ -105,7 +105,8 @@ export function reinforceLine(login: string, gained: Fielded, fresh: readonly Co
   const described = sorted.slice(0, 2).map(describe);
   if (sorted.length > 2) described.push(`${sorted.length - 2} more`);
   const units = unitsPhrase(gained).map((p) => `+${p}`);
-  return `@${login}${units.length ? ` ${units.join(', ')}` : ''} · ${described.join(', ')}`;
+  if (units.length === 0) return `@${login} · ${described.join(', ')} · ${noGainReason(today, sorted.map((g) => g.kind))}`;
+  return `@${login} ${units.join(', ')} · ${described.join(', ')}`;
 }
 
 function describe(g: { kind: ContributionKind; repo: string; n: number }): string {

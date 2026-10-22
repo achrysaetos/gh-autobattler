@@ -72,8 +72,9 @@ export function formFactions(recruits: readonly Recruit[], count: number, seed: 
   }
 
   const epithets = shuffledEpithets(seed);
+  const languages = distinctLanguages(tallies);
   for (const f of factions) {
-    f.language = heaviest(tallies[f.id]!);
+    f.language = languages[f.id] ?? null;
     f.name = `${f.language ?? NO_LANGUAGE} ${epithets[f.id % epithets.length]}`;
   }
   return factions;
@@ -88,6 +89,24 @@ export function weakestFaction(factions: readonly { id: number; soldiers: number
 
 function weaker(a: FactionPlan, b: FactionPlan): number {
   return a.soldiers - b.soldiers || a.members.length - b.members.length || a.id - b.id;
+}
+
+// Each language names at most one faction: the strongest claims win, and a faction outbid
+// on its top language falls back to its next one.
+function distinctLanguages(tallies: readonly ReadonlyMap<string, number>[]): (string | null)[] {
+  const claims: { faction: number; lang: string; weight: number }[] = [];
+  tallies.forEach((t, faction) => {
+    for (const [lang, weight] of t) claims.push({ faction, lang, weight });
+  });
+  claims.sort((a, b) => b.weight - a.weight || (a.lang < b.lang ? -1 : a.lang > b.lang ? 1 : 0) || a.faction - b.faction);
+  const out: (string | null)[] = tallies.map(() => null);
+  const taken = new Set<string>();
+  for (const c of claims) {
+    if (out[c.faction] !== null || taken.has(c.lang)) continue;
+    out[c.faction] = c.lang;
+    taken.add(c.lang);
+  }
+  return out;
 }
 
 function heaviest(weights: ReadonlyMap<string, number>): string | null {

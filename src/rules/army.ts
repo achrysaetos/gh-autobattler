@@ -1,5 +1,5 @@
 import { addDays } from './days.ts';
-import type { Army, Contribution, DayLedger, IsoDay } from './types.ts';
+import type { Army, Contribution, ContributionKind, DayLedger, IsoDay } from './types.ts';
 
 export const ARTICLES = {
   tourDays: 28,
@@ -15,6 +15,13 @@ export function infantryForCommits(commits: number): number {
   if (commits <= 0) return 0;
   const log2 = 31 - Math.clz32(commits);
   return Math.min(ARTICLES.infantryPerDayCap, 1 + log2);
+}
+
+export function noGainReason(day: DayLedger | undefined, kinds: readonly ContributionKind[]): string {
+  if (!day) return 'outside the 28-day tour';
+  if (!kinds.includes('commits')) return 'daily cap reached';
+  if (day.infantry >= ARTICLES.infantryPerDayCap) return 'daily infantry cap reached';
+  return `next infantry at ${2 ** day.infantry} commits today`;
 }
 
 export function windowDays(today: IsoDay): IsoDay[] {

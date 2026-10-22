@@ -105,3 +105,17 @@ describe('dominantLanguage', () => {
     expect(dominantLanguage([c(null, 5)], today)).toBeNull();
   });
 });
+
+describe('faction language names', () => {
+  it('never names two factions after the same language', () => {
+    const recruits: Recruit[] = Array.from({ length: 16 }, (_, i) => ({
+      playerId: i + 1,
+      soldiers: 40,
+      language: i % 4 === 0 ? 'Go' : 'Kotlin',
+    }));
+    const factions = formFactions(recruits, 4, 7);
+    const named = factions.map((f) => f.language).filter((l) => l !== null);
+    expect(new Set(named).size).toBe(named.length);
+    expect(named.sort()).toEqual(['Go', 'Kotlin']);
+  });
+});
