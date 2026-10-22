@@ -2,7 +2,7 @@ import { addDays, DAY_MS, isoDay } from '../rules/days.ts';
 import { hashString, mulberry32, pick, type Rng } from '../rules/prng.ts';
 import type { Contribution, ContributionKind, IsoDay } from '../rules/types.ts';
 import type { Store } from './db.ts';
-import type { Engine } from './engine.ts';
+import type { Campaign } from './campaign.ts';
 import type { Ingest } from './ingest.ts';
 import { errorMessage, type Logger } from './log.ts';
 
@@ -91,7 +91,7 @@ export class DemoTicker {
   private readonly rng: Rng;
 
   constructor(
-    private readonly deps: { store: Store; ingest: Ingest; engine: Engine; log: Logger; clock?: () => number },
+    private readonly deps: { store: Store; ingest: Ingest; campaign: Campaign; log: Logger; clock?: () => number },
     seed: number = Date.now(),
   ) {
     this.rng = mulberry32(seed);
@@ -125,12 +125,12 @@ export class DemoTicker {
     const kind: ContributionKind = roll < 0.7 ? 'commits' : roll < 0.9 ? 'review' : 'merged_pr';
     const c = synthetic(p, this.rng, kind, isoDay(now), kind === 'commits' ? 1 + Math.floor(this.rng() * 4) : 1, `${now}:${++this.serial}`);
     if (kind === 'commits') c.count += this.deps.store.contribution(player.id, c.sourceId)?.count ?? 0;
-    this.deps.engine.enlist(player.id, now);
+    this.deps.campaign.enlist(player.id, now);
     this.deps.ingest.apply(player.id, [c], now);
   }
 }
 
-export function enlistDemoPlayers(store: Store, engine: Engine, now: number): void {
-  for (const p of store.players()) if (p.demo) engine.enlist(p.id, now);
-  engine.remuster(now);
+export function enlistDemoPlayers(store: Store, campaign: Campaign, now: number): void {
+  for (const p of store.players()) if (p.demo) campaign.enlist(p.id, now);
+  campaign.remuster(now);
 }

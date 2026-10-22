@@ -4,16 +4,17 @@ import { Armory } from './armory.ts';
 import type { Config } from './config.ts';
 import { openDb, Store } from './db.ts';
 import { DemoTicker, enlistDemoPlayers, seedDemoPlayers } from './demo.ts';
-import { Engine } from './engine.ts';
+import { Campaign } from './campaign.ts';
 import { createGithubClient } from './github.ts';
 import { buildHttp, Hub } from './http.ts';
 import { Ingest } from './ingest.ts';
 import { consoleLogger, type Logger } from './log.ts';
 import { Poller } from './poller.ts';
+import { Scheduler } from './scheduler.ts';
 
 export interface Server {
   app: FastifyInstance;
-  engine: Engine;
+  campaign: Campaign;
   store: Store;
   listen(): Promise<string>;
   shutdown(): Promise<void>;
@@ -31,16 +32,16 @@ export async function createServer(
   const store = new Store(db);
   const armory = new Armory(store);
   const hub = new Hub();
-  const engine = new Engine({
+  const campaign = new Campaign({
     store,
     sim,
     armory,
     config: { roundMs: config.roundMs, intermissionMs: config.intermissionMs },
     log,
-    broadcast: (m) => hub.broadcast(m),
-    onWorldReset: () => hub.resetAll(),
+    channel: hub.channel('campaign'),
   });
-  const ingest = new Ingest(store, armory, engine);
+  const scheduler = new Scheduler([campaign], log);
+  const ingest = new Ingest(store, armory, campaign);
   const github = config.githubToken ? createGithubClient(config.githubToken, opts.fetchImpl) : null;
   const poller = github ? new Poller({ store, github, ingest, log, clock }) : null;
 
@@ -53,20 +54,20 @@ export async function createServer(
     const created = seedDemoPlayers(store, config.demoPlayers, now);
     log.info('demo players ready', { requested: config.demoPlayers, created: created.length });
   }
-  engine.boot(now);
-  if (config.demoPlayers > 0) enlistDemoPlayers(store, engine, now);
-  const ticker = config.demoPlayers > 0 ? new DemoTicker({ store, ingest, engine, log, clock }) : null;
+  campaign.boot(now);
+  if (config.demoPlayers > 0) enlistDemoPlayers(store, campaign, now);
+  const ticker = config.demoPlayers > 0 ? new DemoTicker({ store, ingest, campaign, log, clock }) : null;
 
-  const app = await buildHttp({ config, store, engine, github, poller, log, clock, fetchImpl: opts.fetchImpl, hub, ingestionEnabled: github !== null });
+  const app = await buildHttp({ config, store, campaign, github, poller, log, clock, fetchImpl: opts.fetchImpl, hub, ingestionEnabled: github !== null });
 
   let closing = false;
   return {
     app,
-    engine,
+    campaign,
     store,
     async listen() {
       if (background) {
-        engine.start(clock);
+        scheduler.start(clock);
         poller?.start();
         ticker?.start();
       }
@@ -77,10 +78,10 @@ export async function createServer(
     async shutdown() {
       if (closing) return;
       closing = true;
-      engine.stop();
+      scheduler.stop();
       poller?.stop();
       ticker?.stop();
-      engine.snapshot();
+      campaign.snapshot();
       hub.closeAll();
       await app.close();
       db.close();

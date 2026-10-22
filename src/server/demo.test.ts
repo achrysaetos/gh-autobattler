@@ -21,12 +21,12 @@ describe('demo mode', () => {
   it('ticks a synthetic contribution into a reinforcement line and a muster', () => {
     h = harness();
     seedDemoPlayers(h.store, 6, NOW);
-    h.engine.boot(NOW);
-    enlistDemoPlayers(h.store, h.engine, NOW);
+    h.campaign.boot(NOW);
+    enlistDemoPlayers(h.store, h.campaign, NOW);
     const inputsBefore = h.store.inputsFrom(1, 0).length;
-    const ticker = new DemoTicker({ store: h.store, ingest: h.ingest, engine: h.engine, log: silentLogger, clock: () => NOW + 1000 }, 3);
+    const ticker = new DemoTicker({ store: h.store, ingest: h.ingest, campaign: h.campaign, log: silentLogger, clock: () => NOW + 1000 }, 3);
     for (let i = 0; i < 10; i++) ticker.tick();
-    const reinforcements = h.store.recentFeed(50).filter((f) => f.kind === 'reinforce');
+    const reinforcements = h.store.campaignFeed(50).filter((f) => f.kind === 'reinforce');
     expect(reinforcements).toHaveLength(10);
     expect(reinforcements[0]!.message).toMatch(/^@[a-z]+/);
     expect(h.store.inputsFrom(1, 0).length).toBeGreaterThan(inputsBefore);

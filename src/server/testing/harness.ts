@@ -6,8 +6,9 @@ import { parseIsoDay } from '../../rules/days.ts';
 import type { Contribution, ContributionKind } from '../../rules/types.ts';
 import { Armory } from '../armory.ts';
 import { openDb, Store } from '../db.ts';
-import { Engine, type EngineConfig } from '../engine.ts';
+import { Campaign, type CampaignConfig } from '../campaign.ts';
 import { Ingest } from '../ingest.ts';
+import { Scheduler } from '../scheduler.ts';
 import { silentLogger } from '../log.ts';
 import { createFakeSim, type FakeSim, type FakeSimOptions } from './fakeSim.ts';
 
@@ -16,7 +17,9 @@ export const HOUR = 3_600_000;
 
 export interface Harness {
   store: Store;
-  engine: Engine;
+  campaign: Campaign;
+  scheduler: Scheduler;
+  tick(now: number): void;
   ingest: Ingest;
   sim: FakeSim;
   sent: ServerMessage[];
@@ -30,7 +33,7 @@ export function tempDbPath(): string {
 export interface HarnessOptions {
   path?: string;
   sim?: FakeSimOptions;
-  config?: Partial<EngineConfig>;
+  config?: Partial<CampaignConfig>;
   seed?: number;
   onSend?: (msg: ServerMessage, store: Store) => void;
 }
@@ -41,19 +44,23 @@ export function harness(opts: HarnessOptions = {}): Harness {
   const armory = new Armory(store);
   const sim = createFakeSim(opts.sim);
   const sent: ServerMessage[] = [];
-  const engine = new Engine({
+  const campaign = new Campaign({
     store,
     sim,
     armory,
     config: { roundMs: 168 * HOUR, intermissionMs: HOUR, ...opts.config },
     log: silentLogger,
-    broadcast: (m) => {
-      opts.onSend?.(m, store);
-      sent.push(m);
+    channel: {
+      send: (m) => {
+        opts.onSend?.(m, store);
+        sent.push(m);
+      },
+      reset: () => {},
     },
     newSeed: () => opts.seed ?? 99,
   });
-  return { store, engine, ingest: new Ingest(store, armory, engine), sim, sent, close: () => db.close() };
+  const scheduler = new Scheduler([campaign], silentLogger);
+  return { store, campaign, scheduler, ingest: new Ingest(store, armory, campaign), sim, sent, tick: (now) => scheduler.tick(now), close: () => db.close() };
 }
 
 export function addPlayer(store: Store, id: number, login: string, demo = false): void {

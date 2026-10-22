@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { eligibility } from '../rules/eligibility.ts';
 import type { Config } from './config.ts';
 import type { Store } from './db.ts';
-import type { Engine } from './engine.ts';
+import type { Campaign } from './campaign.ts';
 import { fetchViewer, type GithubAccount, type GithubClient } from './github.ts';
 import { errorMessage, type Logger } from './log.ts';
 import type { Poller } from './poller.ts';
@@ -15,7 +15,7 @@ const STATE_COOKIE = 'pf_oauth_state';
 export interface AuthDeps {
   config: Config;
   store: Store;
-  engine: Engine;
+  campaign: Campaign;
   github: GithubClient | null;
   poller: Poller | null;
   log: Logger;
@@ -38,7 +38,7 @@ export function admit(deps: AuthDeps, account: GithubAccount): void {
     enlistedAt: now,
     demo: false,
   });
-  const faction = deps.engine.enlist(account.databaseId, now);
+  const faction = deps.campaign.enlist(account.databaseId, now);
   if (faction !== null) deps.log.info('player enlisted', { player: account.databaseId, login: account.login, faction });
   deps.poller?.pollNow(account.databaseId).catch((err) => deps.log.error('first poll failed', { error: errorMessage(err) }));
 }
