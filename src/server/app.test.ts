@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { DEMO_ID_BASE } from './demo.ts';
 import { afterEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import type { ServerMessage } from '../protocol.ts';
@@ -84,8 +85,8 @@ describe('server', () => {
     const health = (await s.app.inject({ url: '/api/health' })).json();
     expect(health).toMatchObject({ ok: true, round: 1, status: 'active', players: 12, ingestion: false });
     expect((await s.app.inject({ url: '/api/standings' })).json()).toEqual({ lifetime: [] });
-    const profile = (await s.app.inject({ url: '/api/players/-3' })).json();
-    expect(profile).toMatchObject({ playerId: -3, stats: { roundsPlayed: 0 }, medals: [], history: [] });
+    const profile = (await s.app.inject({ url: `/api/players/${DEMO_ID_BASE + 3}` })).json();
+    expect(profile).toMatchObject({ playerId: DEMO_ID_BASE + 3, stats: { roundsPlayed: 0 }, medals: [], history: [] });
     expect((await s.app.inject({ url: '/api/players/42' })).statusCode).toBe(404);
   });
 });

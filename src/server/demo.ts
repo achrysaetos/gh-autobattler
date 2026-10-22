@@ -6,6 +6,9 @@ import type { Engine } from './engine.ts';
 import type { Ingest } from './ingest.ts';
 import { errorMessage, type Logger } from './log.ts';
 
+// Far above any GitHub databaseId and non-negative, because the sim reserves negative player ids for neutral garrisons.
+export const DEMO_ID_BASE = 10_000_000_000;
+
 const ADJECTIVES = ['quiet', 'amber', 'mossy', 'brisk', 'hollow', 'tidal', 'ember', 'lunar', 'rusty', 'velvet', 'copper', 'misty', 'jade', 'stormy', 'gentle', 'iron'];
 const NOUNS = ['falcon', 'anvil', 'lantern', 'otter', 'quill', 'harbor', 'thistle', 'comet', 'badger', 'willow', 'kiln', 'heron', 'pylon', 'marrow', 'sparrow', 'cinder'];
 const ORGS = ['lanternworks', 'quillforge', 'emberlabs', 'tidepool-dev', 'mossbyte', 'copperkiln'];
@@ -30,7 +33,7 @@ function persona(index: number): DemoPersona {
   const noun = NOUNS[(5 * (index % n) + Math.floor(index / n)) % n]!;
   const login = `${adjective}${noun}${index >= n * n ? index : ''}`;
   const repos = Array.from({ length: 1 + Math.floor(rng() * 3) }, () => `${pick(rng, ORGS)}/${pick(rng, PROJECTS)}`);
-  return { id: -index, login, language: pick(rng, LANGUAGES), repos: [...new Set(repos)], diligence: 0.2 + rng() * 0.75 };
+  return { id: DEMO_ID_BASE + index, login, language: pick(rng, LANGUAGES), repos: [...new Set(repos)], diligence: 0.2 + rng() * 0.75 };
 }
 
 function avatar(login: string): string {
@@ -74,7 +77,7 @@ export function seedDemoPlayers(store: Store, count: number, now: number): numbe
     for (let i = 1; i <= count; i++) {
       const p = persona(i);
       if (store.player(p.id)) continue;
-      store.upsertPlayer({ id: p.id, nodeId: `demo:${-p.id}`, login: p.login, avatarUrl: avatar(p.login), createdAtGithub: now - 730 * DAY_MS, enlistedAt: now, demo: true });
+      store.upsertPlayer({ id: p.id, nodeId: `demo:${p.id - DEMO_ID_BASE}`, login: p.login, avatarUrl: avatar(p.login), createdAtGithub: now - 730 * DAY_MS, enlistedAt: now, demo: true });
       store.upsertContributions(p.id, history(p, today), now);
       store.markPolled(p.id, now, null);
       created.push(p.id);

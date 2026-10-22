@@ -236,7 +236,7 @@ export class Battlefield {
     let best = reach * reach;
     let playerId: number | null = null;
     for (const u of world.units) {
-      if (u.playerId < 0) continue;
+      if (u.faction === NEUTRAL) continue;
       const pos = this.units.position(u.id) ?? u;
       const d = (pos.x - p.x) * (pos.x - p.x) + (pos.y - p.y) * (pos.y - p.y);
       if (d < best) {

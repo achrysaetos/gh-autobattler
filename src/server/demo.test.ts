@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DemoTicker, enlistDemoPlayers, seedDemoPlayers } from './demo.ts';
+import { DEMO_ID_BASE, DemoTicker, enlistDemoPlayers, seedDemoPlayers } from './demo.ts';
 import { silentLogger } from './log.ts';
 import { harness, type Harness } from './testing/harness.ts';
 
@@ -13,7 +13,7 @@ describe('demo mode', () => {
     expect(seedDemoPlayers(h.store, 200, NOW)).toHaveLength(200);
     expect(seedDemoPlayers(h.store, 200, NOW)).toHaveLength(0);
     const players = h.store.players();
-    expect(players.every((p) => p.demo && p.id < 0 && p.avatarUrl.startsWith('data:image/svg+xml'))).toBe(true);
+    expect(players.every((p) => p.demo && p.id > DEMO_ID_BASE && p.avatarUrl.startsWith('data:image/svg+xml'))).toBe(true);
     expect(new Set(players.map((p) => p.login)).size).toBe(200);
     expect(players.some((p) => h.store.contributions(p.id).length > 0)).toBe(true);
   });
