@@ -18,8 +18,6 @@ export interface PollerDeps {
   clock?: () => number;
 }
 
-// Spends at most BUDGET_FRACTION of the token's hourly GraphQL points, polls the
-// stalest player first, and never polls one player twice within POLL_PERIOD_MS.
 export class Poller {
   private rate: RateLimit | null = null;
   private failures = new Map<number, { count: number; until: number }>();

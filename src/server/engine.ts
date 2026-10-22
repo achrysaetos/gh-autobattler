@@ -138,11 +138,9 @@ export class Engine {
         for (const c of changed) this.deps.store.setLastFielded(p.round.id, c.playerId, c.muster, c.soldiers);
       },
     );
-    for (const c of changed) {
-      const meta = this.playerMeta(c.playerId, now);
-      if (meta) this.broadcastPlayer(meta);
-    }
-    return changed.map((c) => c.playerId);
+    const ids = new Set(changed.map((c) => c.playerId));
+    for (const meta of this.playerMetas(now)) if (ids.has(meta.playerId)) this.broadcastPlayer(meta);
+    return [...ids];
   }
 
   snapshot(): void {
@@ -239,12 +237,13 @@ export class Engine {
       seq: this.deps.store.maxSeq(round.id),
     };
     this.phase = p;
+    const loggedInputs = p.pending.length;
     this.stepUntil(p, Math.min(wallTick(round, now), endTick(round)), Number.POSITIVE_INFINITY);
     this.deps.log.info('round recovered', {
       round: round.id,
       fromTick,
       toTick: p.world.tick,
-      replayedInputs: p.seq,
+      replayedInputs: loggedInputs - p.pending.length,
       ms: Math.round(performance.now() - started),
     });
   }
