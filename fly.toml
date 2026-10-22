@@ -9,6 +9,7 @@ kill_timeout = "30s"
   NODE_ENV = "production"
   PORT = "8080"
   DATABASE_PATH = "/data/pushfront.db"
+  PUBLIC_URL = "https://pushfront.fly.dev"
 
 [[mounts]]
   source = "pushfront_data"
