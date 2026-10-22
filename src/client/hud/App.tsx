@@ -14,7 +14,7 @@ import { ProfileModal, StandingsModal } from './Standings.tsx';
 
 type Dialog = { kind: 'rules' } | { kind: 'standings' } | { kind: 'profile'; playerId: number } | null;
 
-const PHASE_LABEL = { connecting: 'Connecting', syncing: 'Syncing', live: 'Live', resyncing: 'Resyncing', offline: 'Offline' } as const;
+const PHASE_LABEL = { connecting: 'Connecting', syncing: 'Syncing', live: 'Live', resyncing: 'Resyncing', offline: 'Offline', refused: 'Closed' } as const;
 
 function ConnectionPill() {
   const hud = useHud();

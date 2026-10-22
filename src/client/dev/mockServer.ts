@@ -160,7 +160,7 @@ class MockServer {
   dropConnections(): void {
     const dropped = [...this.clients];
     this.clients.clear();
-    for (const c of dropped) c.onClose();
+    for (const c of dropped) c.onClose(null);
   }
 
   standings(): StandingsResponse {

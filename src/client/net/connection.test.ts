@@ -29,4 +29,10 @@ describe('connection lifecycle', () => {
     const dropped = run([{ type: 'retry' }, { type: 'hello' }, { type: 'caught-up' }, { type: 'closed', now: 0 }], second);
     expect(dropped).toEqual({ phase: 'offline', attempt: 1, retryAt: 1000 });
   });
+
+  it('stays refused once the server turns the stream away', () => {
+    const refused = run([{ type: 'refused', reason: 'room_not_found' }]);
+    expect(refused).toEqual({ phase: 'refused', reason: 'room_not_found' });
+    expect(run([{ type: 'closed', now: 0 }, { type: 'retry' }, { type: 'hello' }, { type: 'caught-up' }], refused)).toBe(refused);
+  });
 });

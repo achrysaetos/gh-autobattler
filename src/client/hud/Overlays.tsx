@@ -10,6 +10,7 @@ const SPLASH_STATUS: Record<ConnState['phase'], string> = {
   live: 'The field is yours',
   resyncing: 'Redrawing the lines',
   offline: 'Messenger lost. Retrying',
+  refused: 'Turned away at the gate',
 };
 
 export function Splash() {

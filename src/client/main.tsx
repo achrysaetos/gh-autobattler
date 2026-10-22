@@ -6,7 +6,7 @@ import { connectWebSocket, type Connect } from './net/transport.ts';
 import { Store } from './store.ts';
 import './styles.css';
 
-let connect: Connect = connectWebSocket;
+let connect: Connect = connectWebSocket('/ws');
 let api: Api = httpApi;
 let mock: object = {};
 const isMock = new URLSearchParams(location.search).has('mock');

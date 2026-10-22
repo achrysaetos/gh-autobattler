@@ -2,7 +2,7 @@ import type { ClientMessage, ServerMessage } from '../../protocol.ts';
 
 export interface TransportHandlers {
   onMessage(msg: ServerMessage): void;
-  onClose(): void;
+  onClose(refusal: string | null): void;
 }
 
 export interface Transport {
@@ -25,20 +25,26 @@ function parseServerMessage(raw: unknown): ServerMessage | null {
   return null;
 }
 
-export const connectWebSocket: Connect = (handlers) => {
+function refusalOf(e: CloseEvent): string | null {
+  return e.code >= 4000 && e.code < 5000 ? e.reason || `refused (${e.code})` : null;
+}
+
+export const connectWebSocket =
+  (path: string): Connect =>
+  (handlers) => {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${proto}//${location.host}/ws`);
+  const ws = new WebSocket(`${proto}//${location.host}${path}`);
   let closed = false;
-  const close = () => {
+  const close = (refusal: string | null) => {
     if (closed) return;
     closed = true;
-    handlers.onClose();
+    handlers.onClose(refusal);
   };
   ws.onmessage = (e) => {
     const msg = parseServerMessage(e.data);
     if (msg) handlers.onMessage(msg);
   };
-  ws.onclose = close;
+  ws.onclose = (e) => close(refusalOf(e));
   ws.onerror = () => ws.close();
   return {
     send(msg) {

@@ -78,9 +78,11 @@ export class Store {
   private skirmishWindowStart = Date.now();
   private listeners = new Set<() => void>();
   private snap: HudSnapshot = this.build();
+  private timer = setInterval(() => this.publish(), HUD_INTERVAL_MS);
 
-  constructor() {
-    setInterval(() => this.publish(), HUD_INTERVAL_MS);
+  dispose(): void {
+    clearInterval(this.timer);
+    this.listeners.clear();
   }
 
   subscribe = (fn: () => void): (() => void) => {

@@ -5,14 +5,16 @@ export type ConnState =
   | { phase: 'syncing' }
   | { phase: 'live' }
   | { phase: 'resyncing'; reason: ResyncReason }
-  | { phase: 'offline'; attempt: number; retryAt: number };
+  | { phase: 'offline'; attempt: number; retryAt: number }
+  | { phase: 'refused'; reason: string };
 
 export type ConnEvent =
   | { type: 'hello' }
   | { type: 'caught-up' }
   | { type: 'resync'; reason: ResyncReason }
   | { type: 'closed'; now: number }
-  | { type: 'retry' };
+  | { type: 'retry' }
+  | { type: 'refused'; reason: string };
 
 export const INITIAL_CONN: ConnState = { phase: 'connecting', attempt: 0 };
 
@@ -21,6 +23,7 @@ export function backoffMs(attempt: number): number {
 }
 
 export function transition(state: ConnState, event: ConnEvent): ConnState {
+  if (state.phase === 'refused') return state;
   switch (event.type) {
     case 'hello':
       return state.phase === 'connecting' || state.phase === 'resyncing' || state.phase === 'live' ? { phase: 'syncing' } : state;
@@ -35,5 +38,7 @@ export function transition(state: ConnState, event: ConnEvent): ConnState {
     }
     case 'retry':
       return state.phase === 'offline' ? { phase: 'connecting', attempt: state.attempt } : state;
+    case 'refused':
+      return { phase: 'refused', reason: event.reason };
   }
 }
