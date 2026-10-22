@@ -36,7 +36,7 @@ describe('combat', () => {
     for (const [a, b, side] of [[winner, loser, 0], [loser, winner, 1]] as const) {
       it(`${KIND_NAMES[winner]} beat ${KIND_NAMES[loser]} 10v10 (favored side ${side})`, () => {
         const r = duel(a, b);
-        const other = 1 - side;
+        const other = (1 - side) as 0 | 1;
         expect(r.kills[side]).toBeGreaterThan(r.kills[other]);
         expect(r.survivors[side]).toBeGreaterThan(r.survivors[other]);
         expect(r.kills[side]).toBeGreaterThanOrEqual(4);
