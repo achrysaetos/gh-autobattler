@@ -1,0 +1,48 @@
+{
+  "data": {
+    "node": {
+      "__typename": "User",
+      "id": "U_alice",
+      "databaseId": 1001,
+      "login": "alice",
+      "avatarUrl": "https://avatars.example/1001",
+      "createdAt": "2015-03-01T00:00:00Z",
+      "contributionsCollection": {
+        "commitContributionsByRepository": [
+          {
+            "repository": { "nameWithOwner": "acme/rocket", "isPrivate": false, "owner": { "login": "acme" }, "primaryLanguage": { "name": "Rust" }, "url": "https://github.com/acme/rocket" },
+            "contributions": { "nodes": [
+              { "occurredAt": "2026-10-21T07:00:00Z", "commitCount": 3 },
+              { "occurredAt": "2026-10-20T07:00:00Z", "commitCount": 5 },
+              { "occurredAt": "2026-10-19T07:00:00Z", "commitCount": 0 },
+              null
+            ] }
+          },
+          {
+            "repository": { "nameWithOwner": "alice/dotfiles", "isPrivate": false, "owner": { "login": "alice" }, "primaryLanguage": null, "url": "https://github.com/alice/dotfiles" },
+            "contributions": { "nodes": [ { "occurredAt": "2026-10-21T00:00:00Z", "commitCount": 1 } ] }
+          },
+          {
+            "repository": { "nameWithOwner": "secretcorp/vault", "isPrivate": true, "owner": { "login": "secretcorp" }, "primaryLanguage": { "name": "Go" }, "url": "https://github.com/secretcorp/vault" },
+            "contributions": { "nodes": [ { "occurredAt": "2026-10-21T00:00:00Z", "commitCount": 40 } ] }
+          }
+        ],
+        "pullRequestContributions": { "nodes": [
+          { "pullRequest": { "id": "PR_good", "url": "https://github.com/acme/rocket/pull/1", "title": "Speed up launch", "merged": true, "mergedAt": "2026-10-18T23:30:00-02:00", "mergedBy": { "login": "bob" }, "author": { "login": "alice" }, "repository": { "nameWithOwner": "acme/rocket", "isPrivate": false, "owner": { "login": "acme" }, "primaryLanguage": { "name": "Rust" } } } },
+          { "pullRequest": { "id": "PR_open", "url": "https://github.com/acme/rocket/pull/2", "title": "WIP", "merged": false, "mergedAt": null, "mergedBy": null, "author": { "login": "alice" }, "repository": { "nameWithOwner": "acme/rocket", "isPrivate": false, "owner": { "login": "acme" }, "primaryLanguage": { "name": "Rust" } } } },
+          { "pullRequest": { "id": "PR_selfmerge", "url": "https://github.com/acme/rocket/pull/3", "title": "Self merged", "merged": true, "mergedAt": "2026-10-18T10:00:00Z", "mergedBy": { "login": "Alice" }, "author": { "login": "alice" }, "repository": { "nameWithOwner": "acme/rocket", "isPrivate": false, "owner": { "login": "acme" }, "primaryLanguage": { "name": "Rust" } } } },
+          { "pullRequest": { "id": "PR_ownrepo", "url": "https://github.com/alice/dotfiles/pull/4", "title": "Own repo", "merged": true, "mergedAt": "2026-10-18T10:00:00Z", "mergedBy": { "login": "bob" }, "author": { "login": "alice" }, "repository": { "nameWithOwner": "alice/dotfiles", "isPrivate": false, "owner": { "login": "alice" }, "primaryLanguage": null } } },
+          { "pullRequest": { "id": "PR_private", "url": "https://github.com/secretcorp/vault/pull/5", "title": "Private", "merged": true, "mergedAt": "2026-10-18T10:00:00Z", "mergedBy": { "login": "bob" }, "author": { "login": "alice" }, "repository": { "nameWithOwner": "secretcorp/vault", "isPrivate": true, "owner": { "login": "secretcorp" }, "primaryLanguage": { "name": "Go" } } } },
+          { "pullRequest": { "id": "PR_nomerger", "url": "https://github.com/acme/rocket/pull/6", "title": "Ghost merger", "merged": true, "mergedAt": "2026-10-18T10:00:00Z", "mergedBy": null, "author": { "login": "alice" }, "repository": { "nameWithOwner": "acme/rocket", "isPrivate": false, "owner": { "login": "acme" }, "primaryLanguage": { "name": "Rust" } } } },
+          null
+        ] },
+        "pullRequestReviewContributions": { "nodes": [
+          { "occurredAt": "2026-10-21T15:00:00Z", "pullRequestReview": { "id": "PRR_good", "url": "https://github.com/acme/rocket/pull/9#review-1" }, "pullRequest": { "title": "Bob's change", "author": { "login": "bob" }, "repository": { "nameWithOwner": "acme/rocket", "isPrivate": false } } },
+          { "occurredAt": "2026-10-21T15:00:00Z", "pullRequestReview": { "id": "PRR_self", "url": "https://github.com/acme/rocket/pull/2#review-2" }, "pullRequest": { "title": "WIP", "author": { "login": "alice" }, "repository": { "nameWithOwner": "acme/rocket", "isPrivate": false } } },
+          { "occurredAt": "2026-10-21T15:00:00Z", "pullRequestReview": { "id": "PRR_private", "url": "https://github.com/secretcorp/vault/pull/7#review-3" }, "pullRequest": { "title": "Secret", "author": { "login": "carol" }, "repository": { "nameWithOwner": "secretcorp/vault", "isPrivate": true } } }
+        ] }
+      }
+    },
+    "rateLimit": { "limit": 5000, "remaining": 4990, "resetAt": "2026-10-22T13:00:00Z", "cost": 1 }
+  }
+}
