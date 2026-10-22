@@ -21,7 +21,7 @@ export function mockOptionsFromUrl(search: string): MockOptions | null {
     ended: q.has('ended'),
     desync: q.has('desync'),
     viewer: q.has('viewer'),
-    players: Number(q.get('players') ?? 36) || 36,
+    players: Number(q.get('players') ?? 44) || 44,
   };
 }
 
@@ -233,12 +233,12 @@ class MockServer {
   private makePlayer(i: number, now: number): MockPlayer {
     const id = 1000 + i * 7;
     const login = HANDLES[i % HANDLES.length]! + (i >= HANDLES.length ? `-${i}` : '');
-    const activity = 0.25 + this.rand() * 0.72;
+    const activity = 0.4 + this.rand() * 0.6;
     const repos = Array.from({ length: 3 }, () => `${ORGS[Math.floor(this.rand() * ORGS.length)]}/${REPOS[Math.floor(this.rand() * REPOS.length)]}`);
     const days: DayLedger[] = [];
     for (let d = 27; d >= 0; d--) {
       const active = this.rand() < activity;
-      const commits = active ? Math.floor(this.rand() * this.rand() * 14) : 0;
+      const commits = active ? 1 + Math.floor(this.rand() * this.rand() * 14) : 0;
       const reviews = active && this.rand() < activity * 0.7 ? 1 + Math.floor(this.rand() * 3) : 0;
       const mergedPrs = active && this.rand() < activity * 0.45 ? 1 + Math.floor(this.rand() * 2) : 0;
       days.push({ day: isoDay(now - d * DAY_MS), commits, reviews, mergedPrs, infantry: 0, archers: 0, cavalry: 0 });
