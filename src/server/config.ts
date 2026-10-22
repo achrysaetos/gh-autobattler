@@ -20,6 +20,8 @@ const EnvSchema = z
     DEMO_PLAYERS: z.coerce.number().int().min(0).max(5000).default(0),
     ROUND_HOURS: z.coerce.number().positive().default(168),
     INTERMISSION_MINUTES: z.coerce.number().min(0).default(60),
+    ROOM_MINUTES: z.coerce.number().positive().default(10),
+    ROOM_MAX_LIVE: z.coerce.number().int().min(0).default(20),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
@@ -44,6 +46,8 @@ export interface Config {
   demoPlayers: number;
   roundMs: number;
   intermissionMs: number;
+  roomMs: number;
+  roomMaxLive: number;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
@@ -63,5 +67,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     demoPlayers: e.DEMO_PLAYERS,
     roundMs: Math.round(e.ROUND_HOURS * 3_600_000),
     intermissionMs: Math.round(e.INTERMISSION_MINUTES * 60_000),
+    roomMs: Math.round(e.ROOM_MINUTES * 60_000),
+    roomMaxLive: e.ROOM_MAX_LIVE,
   };
 }

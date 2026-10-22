@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DAY_MS } from './days.ts';
-import { eligibility } from './eligibility.ts';
+import { eligibility, isGithubLogin } from './eligibility.ts';
 import { medalsFor } from './medals.ts';
-import { campaignName, roman } from './naming.ts';
+import { campaignName, roman, roomName } from './naming.ts';
 import type { LifetimeStats } from './types.ts';
 
 const zero: LifetimeStats = { roundsPlayed: 0, roundsWon: 0, kills: 0, losses: 0, captures: 0, peakSoldiers: 0 };
@@ -34,6 +34,21 @@ describe('eligibility', () => {
   it('rejects bots by type and by login suffix', () => {
     expect(eligibility({ login: 'robo', type: 'Bot', createdAtMs: 0 }, now)).toEqual({ ok: false, reason: 'bot' });
     expect(eligibility({ login: 'dependabot[bot]', type: 'User', createdAtMs: 0 }, now)).toEqual({ ok: false, reason: 'bot' });
+  });
+});
+
+describe('isGithubLogin', () => {
+  it('accepts GitHub login syntax, including a bot suffix so eligibility can name it', () => {
+    for (const ok of ['a', 'torvalds', 'Some-User-1', 'x'.repeat(39), 'dependabot[bot]']) expect(isGithubLogin(ok), ok).toBe(true);
+  });
+  it('rejects leading, trailing, and doubled hyphens, other characters, and length over 39', () => {
+    for (const bad of ['', '-a', 'a-', 'a--b', 'a_b', 'a b', 'a.b', 'x'.repeat(40), '[bot]']) expect(isGithubLogin(bad), bad).toBe(false);
+  });
+});
+
+describe('roomName', () => {
+  it('names a room after its fighters', () => {
+    expect(roomName(['alice', 'Bob'])).toBe('@alice vs @Bob');
   });
 });
 

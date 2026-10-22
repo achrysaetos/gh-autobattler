@@ -48,9 +48,8 @@ export class Poller {
   }
 
   nextDue(now: number): PlayerRow | null {
-    const due = this.deps.store
-      .players()
-      .filter((p) => !p.demo && !this.inFlight.has(p.id))
+    const due = this.campaignPlayers()
+      .filter((p) => !this.inFlight.has(p.id))
       .filter((p) => p.lastPolledAt === null || now - p.lastPolledAt >= POLL_PERIOD_MS)
       .filter((p) => (this.failures.get(p.id)?.until ?? 0) <= now)
       .sort((a, b) => (a.lastPolledAt ?? -1) - (b.lastPolledAt ?? -1) || a.id - b.id);
@@ -59,7 +58,11 @@ export class Poller {
 
   async pollNow(playerId: number): Promise<void> {
     const player = this.deps.store.player(playerId);
-    if (player && !player.demo) await this.poll(player);
+    if (player && !player.demo && player.enlistedAt !== null) await this.poll(player);
+  }
+
+  private campaignPlayers(): PlayerRow[] {
+    return this.deps.store.enlistedPlayers().filter((p) => !p.demo);
   }
 
   private schedule(delay: number): void {
@@ -79,7 +82,7 @@ export class Poller {
         const player = this.nextDue(now);
         if (player) {
           await this.poll(player);
-          delay = this.gapMs(this.deps.store.players().filter((p) => !p.demo).length);
+          delay = this.gapMs(this.campaignPlayers().length);
         }
       }
     } catch (err) {

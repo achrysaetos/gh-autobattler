@@ -4,7 +4,7 @@ import { isoDay } from '../rules/days.ts';
 import type { Army, Contribution, ContributionKind, DayLedger, Fielded } from '../rules/types.ts';
 import type { Armory } from './armory.ts';
 import type { ContributionDelta, Store } from './db.ts';
-import type { Engine } from './engine.ts';
+import type { Campaign } from './campaign.ts';
 
 export interface IngestResult {
   firstMuster: boolean;
@@ -19,8 +19,19 @@ export class Ingest {
   constructor(
     private readonly store: Store,
     private readonly armory: Armory,
-    private readonly engine: Engine,
+    private readonly campaign: Campaign,
   ) {}
+
+  record(playerId: number, contributions: readonly Contribution[], now: number): { added: ContributionDelta[]; army: Army } {
+    const today = isoDay(now);
+    const added = this.store.transaction(() => {
+      const deltas = this.store.upsertContributions(playerId, contributions, now);
+      this.store.markPolled(playerId, now, null);
+      return deltas;
+    });
+    const army = added.length > 0 ? this.armory.refresh(playerId, today).army : this.armory.get(playerId, today).army;
+    return { added, army };
+  }
 
   apply(playerId: number, contributions: readonly Contribution[], now: number): IngestResult {
     const player = this.store.player(playerId);
@@ -28,17 +39,12 @@ export class Ingest {
     const today = isoDay(now);
     const firstMuster = player.lastPolledAt === null;
     const before = this.armory.get(playerId, today).army;
-    const added = this.store.transaction(() => {
-      const deltas = this.store.upsertContributions(playerId, contributions, now);
-      this.store.markPolled(playerId, now, null);
-      return deltas;
-    });
-    const army = added.length > 0 ? this.armory.refresh(playerId, today).army : before;
+    const { added, army } = this.record(playerId, contributions, now);
 
     let feed: FeedItem | null = null;
-    const faction = this.engine.factionOf(playerId);
+    const faction = this.campaign.factionOf(playerId);
     if (firstMuster) {
-      feed = this.engine.feed({
+      feed = this.campaign.feed({
         at: now,
         kind: 'enlist',
         playerId,
@@ -51,7 +57,7 @@ export class Ingest {
       const fresh = added.filter((d) => inWindow(d.contribution.day, today));
       if (fresh.length > 0) {
         const gained = gain(before, army);
-        feed = this.engine.feed({
+        feed = this.campaign.feed({
           at: now,
           kind: 'reinforce',
           playerId,
@@ -63,10 +69,10 @@ export class Ingest {
       }
     }
 
-    const mustered = this.engine.remuster(now);
+    const mustered = this.campaign.remuster(now);
     if (added.length > 0 && !mustered.includes(playerId)) {
-      const meta = this.engine.playerMeta(playerId, now);
-      if (meta) this.engine.broadcastPlayer(meta);
+      const meta = this.campaign.playerMeta(playerId, now);
+      if (meta) this.campaign.broadcastPlayer(meta);
     }
     return { firstMuster, added, army, feed };
   }

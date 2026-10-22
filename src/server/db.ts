@@ -19,7 +19,7 @@ export interface PlayerRow {
   login: string;
   avatarUrl: string;
   createdAtGithub: number;
-  enlistedAt: number;
+  enlistedAt: number | null;
   demo: boolean;
   lastPolledAt: number | null;
   pollError: string | null;
@@ -37,6 +37,9 @@ export interface RoundRow {
   intermissionEndsAt: number | null;
   winnerFaction: number | null;
   finalized: boolean;
+  roomSlug: string | null;
+  dominationTicks: number;
+  winnerLogin: string | null;
 }
 
 export interface RoundFactionRow {
@@ -171,6 +174,20 @@ const MIGRATIONS: readonly string[] = [
     peak_soldiers INTEGER NOT NULL DEFAULT 0
   );
   `,
+  `
+  ALTER TABLE rounds ADD COLUMN room_slug TEXT;
+  ALTER TABLE rounds ADD COLUMN domination_ticks INTEGER NOT NULL DEFAULT 216000;
+  ALTER TABLE rounds ADD COLUMN ended_at INTEGER;
+  ALTER TABLE rounds ADD COLUMN winner_login TEXT;
+  CREATE UNIQUE INDEX rounds_room_slug ON rounds (room_slug);
+  ALTER TABLE round_factions ADD COLUMN final_score REAL;
+  ALTER TABLE players ADD COLUMN campaign_enlisted_at INTEGER;
+  UPDATE players SET campaign_enlisted_at = enlisted_at;
+  ALTER TABLE players DROP COLUMN enlisted_at;
+  ALTER TABLE players RENAME COLUMN campaign_enlisted_at TO enlisted_at;
+  CREATE INDEX players_login ON players (login COLLATE NOCASE);
+  CREATE INDEX feed_round ON feed (round_id, id);
+  `,
 ];
 
 export function openDb(path: string): Db {
@@ -199,7 +216,7 @@ interface RawPlayer {
   login: string;
   avatar_url: string;
   created_at_github: number;
-  enlisted_at: number;
+  enlisted_at: number | null;
   demo: number;
   last_polled_at: number | null;
   poll_error: string | null;
@@ -217,6 +234,9 @@ interface RawRound {
   intermission_ends_at: number | null;
   winner_faction: number | null;
   finalized: number;
+  room_slug: string | null;
+  domination_ticks: number;
+  winner_login: string | null;
 }
 
 interface RawContribution {
@@ -265,6 +285,9 @@ const toRound = (r: RawRound): RoundRow => ({
   intermissionEndsAt: r.intermission_ends_at,
   winnerFaction: r.winner_faction,
   finalized: r.finalized === 1,
+  roomSlug: r.room_slug,
+  dominationTicks: r.domination_ticks,
+  winnerLogin: r.winner_login,
 });
 
 const toContribution = (r: RawContribution): Contribution => ({
@@ -289,7 +312,27 @@ const toFeed = (r: RawFeed): FeedItem => ({
   units: r.units_json === null ? null : (JSON.parse(r.units_json) as Fielded),
 });
 
-export type NewRound = Omit<RoundRow, 'id' | 'status' | 'intermissionEndsAt' | 'winnerFaction' | 'finalized'>;
+export type NewRound = Omit<RoundRow, 'id' | 'status' | 'intermissionEndsAt' | 'winnerFaction' | 'finalized' | 'winnerLogin'>;
+
+export interface RoundEnd {
+  winnerFaction: number | null;
+  winnerLogin: string | null;
+  intermissionEndsAt: number | null;
+  endedAt: number;
+  finalScores: readonly { faction: number; score: number }[];
+}
+
+export interface RoomFighterRow {
+  faction: number;
+  color: number;
+  playerId: number;
+  login: string;
+  avatarUrl: string;
+  lastFielded: Muster | null;
+  finalScore: number | null;
+}
+
+const CAMPAIGN = 'room_slug IS NULL';
 export type NewFeed = Omit<FeedItem, 'id'> & { roundId: number | null };
 
 export class Store {
@@ -305,7 +348,8 @@ export class Store {
       .prepare(
         `INSERT INTO players (id, node_id, login, avatar_url, created_at_github, enlisted_at, demo)
          VALUES (@id, @nodeId, @login, @avatarUrl, @createdAtGithub, @enlistedAt, @demo)
-         ON CONFLICT(id) DO UPDATE SET login = excluded.login, avatar_url = excluded.avatar_url, node_id = excluded.node_id`,
+         ON CONFLICT(id) DO UPDATE SET login = excluded.login, avatar_url = excluded.avatar_url, node_id = excluded.node_id,
+           enlisted_at = COALESCE(players.enlisted_at, excluded.enlisted_at)`,
       )
       .run({ ...p, demo: p.demo ? 1 : 0 });
   }
@@ -321,6 +365,17 @@ export class Store {
 
   players(): PlayerRow[] {
     return (this.db.prepare('SELECT * FROM players ORDER BY id').all() as RawPlayer[]).map(toPlayer);
+  }
+
+  enlistedPlayers(): PlayerRow[] {
+    return (this.db.prepare('SELECT * FROM players WHERE enlisted_at IS NOT NULL ORDER BY id').all() as RawPlayer[]).map(toPlayer);
+  }
+
+  playerByLogin(login: string): PlayerRow | null {
+    const r = this.db
+      .prepare('SELECT * FROM players WHERE login = ? COLLATE NOCASE ORDER BY last_polled_at DESC LIMIT 1')
+      .get(login) as RawPlayer | undefined;
+    return r ? toPlayer(r) : null;
   }
 
   markPolled(id: number, at: number, error: string | null): void {
@@ -368,9 +423,59 @@ export class Store {
     return deltas;
   }
 
-  latestRound(): RoundRow | null {
-    const r = this.db.prepare('SELECT * FROM rounds ORDER BY id DESC LIMIT 1').get() as RawRound | undefined;
+  latestCampaignRound(): RoundRow | null {
+    const r = this.db.prepare(`SELECT * FROM rounds WHERE ${CAMPAIGN} ORDER BY id DESC LIMIT 1`).get() as RawRound | undefined;
     return r ? toRound(r) : null;
+  }
+
+  campaignRoundCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) AS n FROM rounds WHERE ${CAMPAIGN}`).get() as { n: number }).n;
+  }
+
+  roomBySlug(slug: string): RoundRow | null {
+    const r = this.db.prepare('SELECT * FROM rounds WHERE room_slug = ?').get(slug) as RawRound | undefined;
+    return r ? toRound(r) : null;
+  }
+
+  liveRooms(): RoundRow[] {
+    return (this.db.prepare(`SELECT * FROM rounds WHERE room_slug IS NOT NULL AND status = 'active' ORDER BY id`).all() as RawRound[]).map(toRound);
+  }
+
+  recentRooms(limit: number): RoundRow[] {
+    return (
+      this.db
+        .prepare(`SELECT * FROM rounds WHERE room_slug IS NOT NULL AND status = 'ended' ORDER BY ended_at DESC, id DESC LIMIT ?`)
+        .all(limit) as RawRound[]
+    ).map(toRound);
+  }
+
+  roomFighters(roundId: number): RoomFighterRow[] {
+    const rows = this.db
+      .prepare(
+        `SELECT f.faction, f.color, f.final_score, rp.player_id, rp.last_fielded_json, p.login, p.avatar_url
+         FROM round_factions f
+         JOIN round_players rp ON rp.round_id = f.round_id AND rp.faction = f.faction
+         JOIN players p ON p.id = rp.player_id
+         WHERE f.round_id = ? ORDER BY f.faction`,
+      )
+      .all(roundId) as {
+      faction: number;
+      color: number;
+      final_score: number | null;
+      player_id: number;
+      last_fielded_json: string | null;
+      login: string;
+      avatar_url: string;
+    }[];
+    return rows.map((r) => ({
+      faction: r.faction,
+      color: r.color,
+      playerId: r.player_id,
+      login: r.login,
+      avatarUrl: r.avatar_url,
+      lastFielded: r.last_fielded_json === null ? null : (JSON.parse(r.last_fielded_json) as Muster),
+      finalScore: r.final_score,
+    }));
   }
 
   round(id: number): RoundRow | null {
@@ -378,27 +483,33 @@ export class Store {
     return r ? toRound(r) : null;
   }
 
-  insertRound(r: NewRound & { id: number }): void {
-    this.db
+  insertRound(r: NewRound): number {
+    const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO rounds (id, name, status, seed, faction_count, expected_units, starts_at, ends_at)
-         VALUES (@id, @name, 'active', @seed, @factionCount, @expectedUnits, @startsAt, @endsAt)`,
+        `INSERT INTO rounds (name, status, seed, faction_count, expected_units, domination_ticks, starts_at, ends_at, room_slug)
+         VALUES (@name, 'active', @seed, @factionCount, @expectedUnits, @dominationTicks, @startsAt, @endsAt, @roomSlug)`,
       )
       .run(r);
+    return Number(lastInsertRowid);
   }
 
-  endRound(id: number, winnerFaction: number | null, intermissionEndsAt: number): boolean {
-    return (
-      this.db
-        .prepare(
-          `UPDATE rounds SET status = 'ended', winner_faction = ?, intermission_ends_at = ? WHERE id = ? AND status = 'active'`,
-        )
-        .run(winnerFaction, intermissionEndsAt, id).changes === 1
-    );
+  endRound(id: number, end: RoundEnd): boolean {
+    return this.transaction(() => {
+      const changed =
+        this.db
+          .prepare(
+            `UPDATE rounds SET status = 'ended', winner_faction = ?, winner_login = ?, intermission_ends_at = ?, ended_at = ?
+             WHERE id = ? AND status = 'active'`,
+          )
+          .run(end.winnerFaction, end.winnerLogin, end.intermissionEndsAt, end.endedAt, id).changes === 1;
+      const score = this.db.prepare('UPDATE round_factions SET final_score = ? WHERE round_id = ? AND faction = ?');
+      if (changed) for (const f of end.finalScores) score.run(f.score, id, f.faction);
+      return changed;
+    });
   }
 
   claimFinalize(id: number): boolean {
-    return this.db.prepare(`UPDATE rounds SET finalized = 1 WHERE id = ? AND status = 'ended' AND finalized = 0`).run(id).changes === 1;
+    return this.db.prepare(`UPDATE rounds SET finalized = 1 WHERE id = ? AND status = 'ended' AND finalized = 0 AND room_slug IS NULL`).run(id).changes === 1;
   }
 
   insertFactions(roundId: number, factions: readonly RoundFactionRow[]): void {
@@ -524,8 +635,15 @@ export class Store {
     return r.at ?? Number.NEGATIVE_INFINITY;
   }
 
-  recentFeed(limit: number): FeedItem[] {
-    const rows = this.db.prepare('SELECT * FROM feed ORDER BY id DESC LIMIT ?').all(limit) as RawFeed[];
+  campaignFeed(limit: number): FeedItem[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM feed WHERE round_id IS NULL OR round_id IN (SELECT id FROM rounds WHERE ${CAMPAIGN}) ORDER BY id DESC LIMIT ?`)
+      .all(limit) as RawFeed[];
+    return rows.map(toFeed).reverse();
+  }
+
+  roundFeed(roundId: number, limit: number): FeedItem[] {
+    const rows = this.db.prepare('SELECT * FROM feed WHERE round_id = ? ORDER BY id DESC LIMIT ?').all(roundId, limit) as RawFeed[];
     return rows.map(toFeed).reverse();
   }
 
@@ -594,7 +712,7 @@ export class Store {
          FROM round_players rp
          JOIN rounds r ON r.id = rp.round_id
          LEFT JOIN round_factions f ON f.round_id = rp.round_id AND f.faction = rp.faction
-         WHERE rp.player_id = ? AND r.finalized = 1
+         WHERE rp.player_id = ? AND r.finalized = 1 AND r.room_slug IS NULL
          ORDER BY r.id DESC`,
       )
       .all(playerId) as {

@@ -37,12 +37,7 @@ export class GithubError extends Error {
   }
 }
 
-const CONTRIBUTIONS_QUERY = `
-query Pushfront($id: ID!, $from: DateTime!, $to: DateTime!) {
-  node(id: $id) {
-    __typename
-    ... on Bot { login }
-    ... on User {
+const USER_FIELDS = `
       id databaseId login avatarUrl createdAt
       contributionsCollection(from: $from, to: $to) {
         commitContributionsByRepository(maxRepositories: 100) {
@@ -62,13 +57,25 @@ query Pushfront($id: ID!, $from: DateTime!, $to: DateTime!) {
             pullRequest { title author { login } repository { nameWithOwner isPrivate primaryLanguage { name } } }
           }
         }
-      }
-    }
+      }`;
+
+const RATE_LIMIT_FIELDS = 'rateLimit { limit remaining resetAt cost }';
+
+const CONTRIBUTIONS_QUERY = `
+query Pushfront($id: ID!, $from: DateTime!, $to: DateTime!) {
+  node(id: $id) {
+    __typename
+    ... on Bot { login }
+    ... on User { ${USER_FIELDS} }
   }
-  rateLimit { limit remaining resetAt cost }
+  ${RATE_LIMIT_FIELDS}
 }`;
 
-const LOGIN_QUERY = `query PushfrontLogin($login: String!) { user(login: $login) { id } }`;
+const LOGIN_QUERY = `
+query PushfrontLogin($login: String!, $from: DateTime!, $to: DateTime!) {
+  user(login: $login) { __typename ${USER_FIELDS} }
+  ${RATE_LIMIT_FIELDS}
+}`;
 
 const login = z.object({ login: z.string() });
 const language = z.object({ name: z.string() }).nullable();
@@ -133,11 +140,13 @@ const UserSchema = z.object({
   }),
 });
 
+const OwnerSchema = z.object({ __typename: z.string() }).loose().nullable();
+
 const ContributionsResponseSchema = z.object({
-  data: z.object({
-    node: z.object({ __typename: z.string() }).loose().nullable(),
-    rateLimit: RateLimitSchema,
-  }),
+  data: z.union([
+    z.object({ node: OwnerSchema, rateLimit: RateLimitSchema }),
+    z.object({ user: OwnerSchema, rateLimit: RateLimitSchema }),
+  ]),
 });
 
 const ViewerSchema = z.object({
@@ -161,12 +170,15 @@ function utcDay(iso: string) {
   return isoDay(Date.parse(iso));
 }
 
-export function parseContributionsResponse(json: unknown): ContributionsResult | { notFound: true; rateLimit: RateLimit } {
-  const parsed = ContributionsResponseSchema.parse(json);
-  const rl = parsed.data.rateLimit;
+export type LookupResult = ContributionsResult | { notFound: true; rateLimit: RateLimit };
+
+export function parseContributionsResponse(json: unknown): LookupResult {
+  const { data } = ContributionsResponseSchema.parse(json);
+  const rl = data.rateLimit;
   const rateLimit: RateLimit = { limit: rl.limit, remaining: rl.remaining, resetAtMs: Date.parse(rl.resetAt), cost: rl.cost };
-  if (parsed.data.node?.__typename !== 'User') return { notFound: true, rateLimit };
-  const user = UserSchema.parse(parsed.data.node);
+  const owner = 'node' in data ? data.node : data.user;
+  if (owner?.__typename !== 'User') return { notFound: true, rateLimit };
+  const user = UserSchema.parse(owner);
   return {
     account: {
       databaseId: user.databaseId,
@@ -247,8 +259,8 @@ function contributionsOf(user: ParsedUser): Contribution[] {
 }
 
 export interface GithubClient {
-  fetchContributions(nodeId: string, nowMs: number): Promise<ContributionsResult | { notFound: true; rateLimit: RateLimit }>;
-  resolveLogin(login: string): Promise<string | null>;
+  fetchContributions(nodeId: string, nowMs: number): Promise<LookupResult>;
+  fetchContributionsByLogin(login: string, nowMs: number): Promise<LookupResult>;
 }
 
 export function createGithubClient(token: string, fetchImpl: typeof fetch = fetch): GithubClient {
@@ -266,17 +278,17 @@ export function createGithubClient(token: string, fetchImpl: typeof fetch = fetc
     return body;
   }
 
+  const window = (nowMs: number) => ({
+    from: new Date(nowMs - CONTRIBUTION_LOOKBACK_DAYS * DAY_MS).toISOString(),
+    to: new Date(nowMs).toISOString(),
+  });
+
   return {
     async fetchContributions(nodeId, nowMs) {
-      const from = new Date(nowMs - CONTRIBUTION_LOOKBACK_DAYS * DAY_MS).toISOString();
-      const to = new Date(nowMs).toISOString();
-      return parseContributionsResponse(await graphql(CONTRIBUTIONS_QUERY, { id: nodeId, from, to }));
+      return parseContributionsResponse(await graphql(CONTRIBUTIONS_QUERY, { id: nodeId, ...window(nowMs) }));
     },
-    async resolveLogin(loginName) {
-      const body = z.object({ data: z.object({ user: z.object({ id: z.string() }).nullable() }) }).parse(
-        await graphql(LOGIN_QUERY, { login: loginName }),
-      );
-      return body.data.user?.id ?? null;
+    async fetchContributionsByLogin(loginName, nowMs) {
+      return parseContributionsResponse(await graphql(LOGIN_QUERY, { login: loginName, ...window(nowMs) }));
     },
   };
 }
