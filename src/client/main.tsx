@@ -12,9 +12,12 @@ let mock: object = {};
 const isMock = new URLSearchParams(location.search).has('mock');
 if (isMock) {
   const { mockOptionsFromUrl, mockServer } = await import('./dev/mockServer.ts');
-  const server = mockServer(mockOptionsFromUrl(location.search)!);
+  const { mockRooms } = await import('./dev/mockRooms.ts');
+  const options = mockOptionsFromUrl(location.search)!;
+  const server = mockServer(options);
+  const rooms = mockRooms({ empty: options.empty });
   connect = server.connect;
-  api = mockApi(server);
+  api = mockApi({ standings: () => server.standings(), profile: (id) => server.profile(id), rooms: rooms.rooms, createRoom: rooms.createRoom });
   mock = { server };
 }
 

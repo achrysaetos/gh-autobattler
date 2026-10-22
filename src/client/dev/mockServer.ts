@@ -3,9 +3,16 @@ import type { Army, DayLedger, Fielded, IsoDay, LifetimeStats, Medal } from '../
 import type { FactionMeta, FeedItem, PlayerMeta, ProfileResponse, RoundMeta, ServerMessage, StandingsResponse } from '../../protocol.ts';
 import { sim } from '../simModule.ts';
 import { objectiveName } from '../../rules/names.ts';
+import { PALETTE } from '../../rules/factions.ts';
 import type { Connect, TransportHandlers } from '../net/transport.ts';
 
+export interface MockRoom {
+  slug: string;
+  logins: string[];
+}
+
 export interface MockOptions {
+  room: MockRoom | null;
   empty: boolean;
   ended: boolean;
   desync: boolean;
@@ -17,6 +24,7 @@ export function mockOptionsFromUrl(search: string): MockOptions | null {
   const q = new URLSearchParams(search);
   if (!q.has('mock')) return null;
   return {
+    room: null,
     empty: q.has('empty'),
     ended: q.has('ended'),
     desync: q.has('desync'),
@@ -26,14 +34,15 @@ export function mockOptionsFromUrl(search: string): MockOptions | null {
 }
 
 const DAY_MS = 86_400_000;
+const ROOM_MS = 10 * 60_000;
+const ROOM_DOMINATION_TICKS = 600;
 const LATENCY_MS = 35;
 const PRESIM_TICKS = 450;
 const FIELD_CAP = 2400;
 
 const LANGUAGES = ['TypeScript', 'Rust', 'Go', 'Python', 'Kotlin', 'Elixir', 'Swift', 'Haskell'];
 const FACTION_SUFFIX = ['Vanguard', 'Legion', 'Wardens', 'Covenant', 'Host', 'Order', 'Company', 'Concord'];
-const PALETTE = [0xd2483f, 0x3f88d6, 0xe2a634, 0x9160d4, 0x2fb39f, 0xe06aa8, 0xef7d3c, 0x8fbf4a];
-const HANDLES = [
+export const HANDLES = [
   'ada-lind', 'bramblecode', 'cormac', 'dvorak-j', 'emberfox', 'fjordline', 'gwen-ito', 'hollowtree', 'isadora-k', 'jun-park',
   'kestrel', 'lumen-dev', 'mirela', 'noor-a', 'oakhaven', 'pell', 'quillon', 'rook-and-pawn', 'sable', 'tamsin-r',
   'ulrike', 'vesper', 'wren-o', 'xiomara', 'yusuf-b', 'zephyrine', 'arlo-m', 'birchwood', 'calloway', 'dagny',
@@ -96,7 +105,7 @@ function tally(days: DayLedger[]): Army {
   return { infantry, archers, cavalry, rank: Math.min(4, Math.floor(activeDays / 7)), activeDays, streak, days };
 }
 
-function avatarFor(login: string, color: number): string {
+export function avatarFor(login: string, color: number): string {
   const hex = `#${color.toString(16).padStart(6, '0')}`;
   const letter = login[0]!.toUpperCase();
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hex}"/><stop offset="1" stop-color="#1a1f25"/></linearGradient></defs><rect width="64" height="64" fill="url(#g)"/><path d="M32 8 52 16v16c0 12-9 20-20 24C21 52 12 44 12 32V16z" fill="rgba(0,0,0,.28)" stroke="rgba(240,210,138,.55)" stroke-width="2"/><text x="32" y="41" font-family="Georgia,serif" font-size="22" text-anchor="middle" fill="#f3ead2">${letter}</text></svg>`;
@@ -144,6 +153,10 @@ class MockServer {
   constructor(private opts: MockOptions) {}
 
   connect: Connect = (handlers) => {
+    if (this.opts.room && !this.opts.room.slug.startsWith('demo')) {
+      setTimeout(() => handlers.onClose('room_not_found'), LATENCY_MS * 4);
+      return { send: () => {}, close: () => {} };
+    }
     this.start();
     this.clients.add(handlers);
     setTimeout(() => this.deliver(handlers, this.hello()), LATENCY_MS * 4);
@@ -199,17 +212,19 @@ class MockServer {
     if (this.started) return;
     this.started = true;
     const now = Date.now();
-    const count = this.opts.empty ? 0 : this.opts.players;
-    const F = count === 0 ? 0 : Math.max(Math.min(count, 2), Math.min(8, Math.round(Math.sqrt(count))));
+    const room = this.opts.room;
+    const count = room ? room.logins.length : this.opts.empty ? 0 : this.opts.players;
+    const F = room ? count : count === 0 ? 0 : Math.max(Math.min(count, 2), Math.min(8, Math.round(Math.sqrt(count))));
     for (let i = 0; i < F; i++) {
-      this.factions.push({ id: i, name: `${LANGUAGES[i]} ${FACTION_SUFFIX[i]}`, color: PALETTE[i]!, language: LANGUAGES[i]! });
+      const name = room ? `@${room.logins[i]}` : `${LANGUAGES[i]} ${FACTION_SUFFIX[i]}`;
+      this.factions.push({ id: i, name, color: PALETTE[i]!, language: LANGUAGES[i]! });
     }
     for (let i = 0; i < count; i++) this.players.push(this.makePlayer(i, now));
     this.rescaleFielded();
 
     const monday = now - (((new Date(now).getUTCDay() + 6) % 7) * DAY_MS + (now % DAY_MS));
     this.roundStartMs = now - PRESIM_TICKS * TICK_MS;
-    this.round = {
+    this.round = room ? this.roomRound(room) : {
       id: 12,
       roomSlug: null,
       name: 'Round XII · The Ember March',
@@ -220,7 +235,7 @@ class MockServer {
       winnerFaction: null,
     };
     const expectedUnits = Math.max(200, this.players.reduce((s, p) => s + p.meta.fielded.infantry + p.meta.fielded.archers + p.meta.fielded.cavalry, 0));
-    const params = { seed: 7331, factionCount: F, expectedUnits, dominationTicks: 216000 };
+    const params = { seed: 7331, factionCount: F, expectedUnits, dominationTicks: room ? ROOM_DOMINATION_TICKS : 216000 };
     this.world = sim.createWorld(params, sim.generateMap(params));
     for (const p of this.players) {
       this.scheduleInput(0, { kind: 'enlist', playerId: p.meta.playerId, faction: p.meta.faction });
@@ -231,15 +246,41 @@ class MockServer {
       const leader = [...this.world.factions].sort((a, b) => b.score - a.score)[0];
       this.round.winnerFaction = leader?.id ?? null;
     }
-    this.seedFeed(now);
+    if (room) this.pushFeed({ kind: 'round', playerId: null, faction: null, message: `Skirmish begun: ${this.factions.map((f) => f.name).join(' vs ')}. Armies are fixed for ten minutes.`, url: null, units: null }, false, this.roundStartMs);
+    else this.seedFeed(now);
     this.nextContributionAt = now + 2500;
     this.nextEnlistAt = now + 45_000;
     setInterval(() => this.loop(), TICK_MS);
   }
 
+  private roomRound(room: MockRoom): RoundMeta {
+    const startsAt = this.roundStartMs;
+    return {
+      id: 900,
+      roomSlug: room.slug,
+      name: `Skirmish ${room.slug}`,
+      status: this.opts.ended ? 'ended' : 'active',
+      startsAt,
+      endsAt: startsAt + (this.opts.ended ? PRESIM_TICKS * TICK_MS : ROOM_MS),
+      intermissionEndsAt: null,
+      winnerFaction: null,
+    };
+  }
+
+  private roomEndTick(): number {
+    return this.world.winner !== NEUTRAL ? this.world.tick : Math.floor((this.round.endsAt - this.roundStartMs) / TICK_MS);
+  }
+
+  private concludeRoom(now: number): void {
+    if (this.round.status === 'ended' || (this.world.winner === NEUTRAL && now < this.round.endsAt)) return;
+    const leader = [...this.world.factions].sort((a, b) => b.score - a.score)[0];
+    this.round = { ...this.round, status: 'ended', winnerFaction: this.world.winner !== NEUTRAL ? this.world.winner : (leader?.id ?? null) };
+    this.broadcast({ type: 'round', round: this.round });
+  }
+
   private makePlayer(i: number, now: number): MockPlayer {
     const id = 1000 + i * 7;
-    const login = HANDLES[i % HANDLES.length]! + (i >= HANDLES.length ? `-${i}` : '');
+    const login = this.opts.room?.logins[i] ?? HANDLES[i % HANDLES.length]! + (i >= HANDLES.length ? `-${i}` : '');
     const activity = 0.4 + this.rand() * 0.6;
     const repos = Array.from({ length: 3 }, () => `${ORGS[Math.floor(this.rand() * ORGS.length)]}/${REPOS[Math.floor(this.rand() * REPOS.length)]}`);
     const days: DayLedger[] = [];
@@ -251,7 +292,7 @@ class MockServer {
       days.push({ day: isoDay(now - d * DAY_MS), commits, reviews, mergedPrs, infantry: 0, archers: 0, cavalry: 0 });
     }
     const army = tally(days);
-    const faction = this.factions.length ? this.weakestFaction() : NEUTRAL;
+    const faction = this.opts.room ? i : this.factions.length ? this.weakestFaction() : NEUTRAL;
     const color = this.factions[faction]?.color ?? 0x888888;
     const meta: PlayerMeta = {
       playerId: id,
@@ -304,7 +345,7 @@ class MockServer {
   }
 
   private advanceTo(tick: number, live: boolean): void {
-    while (this.world.tick < tick) {
+    while (this.world.tick < tick && (!this.opts.room || this.world.tick < this.roomEndTick())) {
       const due = this.schedule.get(this.world.tick) ?? [];
       this.schedule.delete(this.world.tick);
       const events = sim.step(this.world, due.map((t) => t.input));
@@ -330,6 +371,10 @@ class MockServer {
   private loop(): void {
     const now = Date.now();
     this.advanceTo(Math.floor((now - this.roundStartMs) / TICK_MS), true);
+    if (this.opts.room) {
+      this.concludeRoom(now);
+      return;
+    }
     if (this.players.length === 0 || this.round.status === 'ended') return;
     if (now >= this.nextContributionAt) {
       this.nextContributionAt = now + 2200 + this.rand() * 4200;
@@ -453,10 +498,13 @@ class MockServer {
   }
 }
 
-let instance: MockServer | null = null;
+const instances = new Map<string, MockServer>();
 
 export function mockServer(opts: MockOptions): MockServer {
-  return (instance ??= new MockServer(opts));
+  const key = opts.room?.slug ?? '';
+  let server = instances.get(key);
+  if (!server) instances.set(key, (server = new MockServer(opts)));
+  return server;
 }
 
 export type { MockServer };
