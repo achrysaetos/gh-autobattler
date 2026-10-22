@@ -15,6 +15,7 @@ const SPLASH_STATUS: Record<ConnState['phase'], string> = {
 
 export function Splash() {
   const hud = useHud();
+  const { room } = useEnv();
   const ready = hud.hasWorld && hud.conn.phase === 'live';
   const [gone, setGone] = useState(false);
   useEffect(() => {
@@ -33,7 +34,7 @@ export function Splash() {
           <Crest />
         </div>
         <h1 className="splash-title">PUSHFRONT</h1>
-        <div className="splash-tag">A persistent war fought by public GitHub activity.</div>
+        <div className="splash-tag">{room ? 'A public skirmish fought by GitHub activity.' : 'A persistent war fought by public GitHub activity.'}</div>
         <div className="splash-status">{SPLASH_STATUS[hud.conn.phase]}</div>
         <div className="splash-bar">
           <i />

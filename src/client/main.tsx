@@ -5,6 +5,7 @@ import { LockstepRunner } from './net/runner.ts';
 import { connectWebSocket, type Connect } from './net/transport.ts';
 import { Store } from './store.ts';
 import './styles.css';
+import './rooms.css';
 
 let connect: Connect = connectWebSocket('/ws');
 let api: Api = httpApi;
@@ -26,4 +27,4 @@ const runner = new LockstepRunner(connect, store);
 runner.start();
 if (isMock) Object.assign(window, { pushfront: { store, runner, ...mock } });
 
-createRoot(document.getElementById('root')!).render(<App store={store} runner={runner} api={api} mock={isMock} />);
+createRoot(document.getElementById('root')!).render(<App store={store} runner={runner} api={api} mock={isMock} room={null} />);

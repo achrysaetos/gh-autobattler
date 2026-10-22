@@ -7,7 +7,10 @@ import { ArticlesOfWar } from './ArticlesOfWar.tsx';
 import { HudContext, useEnv, useHud, useMediaQuery, type HudEnv } from './context.ts';
 import { Dispatches } from './Dispatches.tsx';
 import { Crest } from './icons.tsx';
+import { Link } from './Link.tsx';
+import { RoomLost } from './Lost.tsx';
 import { EmptyState, OfflineBanner, RoundOverlay, Splash, Toasts } from './Overlays.tsx';
+import { CopyLinkButton, RoomOverlay } from './Room.tsx';
 import { PlayerPanel } from './PlayerPanel.tsx';
 import { Scoreboard } from './Scoreboard.tsx';
 import { ProfileModal, StandingsModal } from './Standings.tsx';
@@ -28,20 +31,32 @@ function ConnectionPill() {
 
 function CommandBar({ onDialog, mock, withFeed }: { onDialog(d: Dialog): void; mock: boolean; withFeed: boolean }) {
   const hud = useHud();
-  const { store } = useEnv();
+  const { store, room } = useEnv();
   const viewer = hud.viewerPlayerId !== null ? hud.players.get(hud.viewerPlayerId) : undefined;
+  const sub = room
+    ? `Public skirmish${hud.factions.length ? ` · ${hud.factions.length} fighters` : ''}${mock ? ' · mock' : ''}`
+    : mock
+      ? 'Preview battle · mock server'
+      : 'Public GitHub activity, at war';
+  useEffect(() => {
+    if (room && hud.factions.length) document.title = `Pushfront · ${hud.factions.map((f) => f.name).join(' vs ')}`;
+  }, [room, hud.factions]);
   return (
     <div className="command">
       <div className="brand">
-        <Crest className="brand-mark" />
-        <div>
-          <div className="brand-name">PUSHFRONT</div>
-          <div className="brand-sub">{mock ? 'Preview battle · mock server' : 'Public GitHub activity, at war'}</div>
-        </div>
+        <Link to={{ kind: 'home' }} className="brand-home" title="Pick your fighters" aria-label="Pushfront home">
+          <Crest className="brand-mark" />
+          <div>
+            <div className="brand-name">PUSHFRONT</div>
+            <div className="brand-sub">{sub}</div>
+          </div>
+        </Link>
         <ConnectionPill />
       </div>
       <div className="command-row">
-        {viewer ? (
+        {room ? (
+          <CopyLinkButton />
+        ) : viewer ? (
           <button className="btn btn-gold" onClick={() => store.select(viewer.playerId)}>
             <img src={viewer.avatarUrl} alt="" width={18} height={18} style={{ borderRadius: 4 }} />
             Your army
@@ -58,11 +73,19 @@ function CommandBar({ onDialog, mock, withFeed }: { onDialog(d: Dialog): void; m
             Articles<span className="label-wide"> of War</span>
           </span>
         </button>
-        <button className="icon-btn" onClick={() => onDialog({ kind: 'standings' })} aria-label="Standings" title="Standings">
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
-            <path d="M4 2h8v3a4 4 0 0 1-8 0Z M4 3H1.5v1.5A2.5 2.5 0 0 0 4 7 M12 3h2.5v1.5A2.5 2.5 0 0 1 12 7 M8 9v3 M5 14h6" fill="none" stroke="#f0d28a" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
-          </svg>
-        </button>
+        {room ? (
+          <Link to={{ kind: 'home' }} className="icon-btn" aria-label="New battle" title="New battle">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+              <path d="M2.5 2.5 10 10M13.5 2.5 6 10M9 11l2-2 2 2-2 2ZM7 11 5 9l-2 2 2 2ZM2.5 2.5h2.2M2.5 2.5v2.2M13.5 2.5h-2.2M13.5 2.5v2.2" fill="none" stroke="#f0d28a" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+        ) : (
+          <button className="icon-btn" onClick={() => onDialog({ kind: 'standings' })} aria-label="Standings" title="Standings">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+              <path d="M4 2h8v3a4 4 0 0 1-8 0Z M4 3H1.5v1.5A2.5 2.5 0 0 0 4 7 M12 3h2.5v1.5A2.5 2.5 0 0 1 12 7 M8 9v3 M5 14h6" fill="none" stroke="#f0d28a" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
       </div>
       {withFeed && hud.hasWorld && <Dispatches />}
     </div>
@@ -178,6 +201,13 @@ function Hud({ mock }: { mock: boolean }) {
   const env = useEnv();
   const close = useCallback(() => setDialog(null), []);
   const hud = useHud();
+  if (hud.conn.phase === 'refused') {
+    return (
+      <div className="hud">
+        <RoomLost />
+      </div>
+    );
+  }
   return (
     <HudContext.Provider value={{ ...env, openProfile: (playerId) => setDialog({ kind: 'profile', playerId }) }}>
       <div className="hud">
@@ -197,8 +227,8 @@ function Hud({ mock }: { mock: boolean }) {
         )}
         {mobile && hud.hasWorld && <MobileSheet />}
         <OfflineBanner />
-        <EmptyState onRules={() => setDialog({ kind: 'rules' })} />
-        <RoundOverlay />
+        {env.room ? <RoomOverlay /> : <EmptyState onRules={() => setDialog({ kind: 'rules' })} />}
+        {!env.room && <RoundOverlay />}
         {dialog?.kind === 'rules' && <ArticlesOfWar onClose={close} />}
         {dialog?.kind === 'standings' && <StandingsModal onClose={close} />}
         {dialog?.kind === 'profile' && <ProfileModal playerId={dialog.playerId} onClose={close} />}
@@ -208,7 +238,7 @@ function Hud({ mock }: { mock: boolean }) {
   );
 }
 
-export function App({ store, runner, api, mock }: { store: Store; runner: LockstepRunner; api: Api; mock: boolean }) {
+export function App({ store, runner, api, mock, room }: { store: Store; runner: LockstepRunner; api: Api; mock: boolean; room: string | null }) {
   const host = useRef<HTMLDivElement>(null);
   const [battlefield, setBattlefield] = useState<Battlefield | null>(null);
   useEffect(() => {
@@ -227,7 +257,7 @@ export function App({ store, runner, api, mock }: { store: Store; runner: Lockst
       bf.destroy();
     };
   }, [runner, store, mock]);
-  const env = useMemo<HudEnv>(() => ({ store, api, battlefield, openProfile: () => {} }), [store, api, battlefield]);
+  const env = useMemo<HudEnv>(() => ({ store, api, battlefield, room, openProfile: () => {} }), [store, api, battlefield, room]);
   return (
     <HudContext.Provider value={env}>
       <div className="app">

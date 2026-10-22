@@ -7,6 +7,7 @@ export interface HudEnv {
   store: Store;
   api: Api;
   battlefield: Battlefield | null;
+  room: string | null;
   openProfile(playerId: number): void;
 }
 
