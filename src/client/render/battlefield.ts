@@ -139,9 +139,10 @@ export class Battlefield {
     const key = mapKey(world);
     if (this.scene && this.scene.key === key) return this.scene;
     if (this.scene) {
+      const baked = this.scene.terrain.texture;
       this.groundLayer.removeChildren().forEach((c) => c.destroy({ children: true }));
       this.screenLayer.removeChildren().forEach((c) => c.destroy());
-      this.scene.terrain.texture.destroy(true);
+      baked.destroy(true);
     }
     this.units.clear();
     this.fx.clear();
