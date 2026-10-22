@@ -11,7 +11,6 @@ export interface UnitStats {
   strength: number;
 }
 
-// Speeds are world units per tick; cooldowns and timers are ticks.
 export const STATS: readonly UnitStats[] = [
   { hp: 120, damage: 12, range: 13, speed: 1.4, cooldown: 10, aggro: 110, ranged: false, strength: 1 },
   { hp: 70, damage: 9, range: 100, speed: 1.8, cooldown: 14, aggro: 135, ranged: true, strength: 1.3 },

@@ -6,8 +6,6 @@ import { nextRandom } from './rng.ts';
 const NEUTRAL_BIT = 1 << 8;
 const DRIFT_CHANCE = 0.25;
 
-// A hex flips to the one faction standing in it. An empty hex near a held
-// objective drifts back to that objective's owner a quarter of the time each second.
 export function updateTerritory(world: World): void {
   const d = derived(world.map);
   const presence = new Uint16Array(world.map.hexes.length);

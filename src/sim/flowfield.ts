@@ -1,9 +1,7 @@
 import { Terrain, type MapDef } from './api.ts';
 
 export interface FlowField {
-  // Integer path cost to the objective (10 per plain cell), -1 when unreachable.
   cost: Int32Array;
-  // Next cell toward the objective, -1 at the goal or when unreachable.
   next: Int32Array;
 }
 
@@ -34,7 +32,6 @@ export function cellCenterY(map: MapDef, cell: number): number {
 const DX = [1, -1, 0, 0, 1, 1, -1, -1];
 const DY = [0, 0, 1, -1, 1, -1, 1, -1];
 
-// Diagonals may not cut a blocked corner, so units never clip through rock.
 export function buildFlowField(map: MapDef, goalCell: number): FlowField {
   const { navCols: cols, navRows: rows, terrain } = map;
   const n = cols * rows;

@@ -1,7 +1,3 @@
-// Public contract of the deterministic battle simulation. Shared verbatim by the
-// authoritative server and by every spectator client, which re-simulates the
-// world locally from a snapshot plus the same input stream (lockstep spectating).
-//
 // Determinism rules for everything under src/sim (except mapgen, whose output is
 // shipped inside snapshots): only + - * / Math.sqrt Math.floor Math.abs Math.min
 // Math.max on numbers, a seeded PRNG stored in World, and iteration over arrays in

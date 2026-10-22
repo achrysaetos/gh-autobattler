@@ -2,8 +2,6 @@ import { NEUTRAL, type Unit, type World } from './api.ts';
 import { createSpatialHash, rebuildSpatialHash, type SpatialHash } from './spatial.ts';
 import { MAX_ALIVE } from './stats.ts';
 
-// Per-tick working memory. Rebuilt from World state every step, so it never
-// needs to be snapshotted and cannot cause divergence.
 export interface Scratch {
   hash: SpatialHash;
   idToIndex: Map<number, number>;
@@ -12,7 +10,6 @@ export interface Scratch {
   nx: Float64Array;
   ny: Float64Array;
   damage: Float64Array;
-  // Player index of the last unit to hit each unit this tick, -1 for none or neutral.
   killer: Int32Array;
 }
 
@@ -52,8 +49,6 @@ export function indexUnits(world: World, s: Scratch): void {
   rebuildSpatialHash(s.hash, units);
 }
 
-// Faction, not player id, marks a garrison: live player ids can be negative and
-// can even equal NEUTRAL.
 export function ownerIndex(s: Scratch, u: Unit): number {
   return u.faction === NEUTRAL ? -1 : (s.playerIndex.get(u.playerId) ?? -1);
 }

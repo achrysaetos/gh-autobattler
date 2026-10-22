@@ -1,7 +1,5 @@
 import type { MapDef, Unit } from './api.ts';
 
-// Bucket grid aligned with the nav grid. Buckets are singly linked lists threaded
-// through `next`, rebuilt from scratch each tick in unit index order.
 export interface SpatialHash {
   cols: number;
   rows: number;

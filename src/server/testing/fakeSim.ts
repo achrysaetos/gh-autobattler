@@ -9,9 +9,6 @@ export interface FakeSim extends SimModule {
   applied: { tick: number; input: SimInput }[];
 }
 
-// A tiny deterministic stand-in for the real sim: units are not simulated, but every
-// input and every tick perturbs an rng and the per-player counters, so any replay that
-// misses, reorders, or double-applies an input produces a different checksum.
 export function createFakeSim(options: FakeSimOptions = {}): FakeSim {
   const captureEvery = options.captureEvery ?? 0;
   const applied: { tick: number; input: SimInput }[] = [];

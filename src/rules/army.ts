@@ -81,7 +81,6 @@ function isActive(d: DayLedger): boolean {
   return d.infantry + d.archers + d.cavalry > 0;
 }
 
-// A day still in progress should not break a streak, so an inactive today counts from yesterday.
 function streak(days: readonly DayLedger[]): number {
   let i = days.length - 1;
   const today = days[i];

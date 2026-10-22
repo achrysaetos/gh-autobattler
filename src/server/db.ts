@@ -343,8 +343,6 @@ export class Store {
     return r ? toContribution(r) : null;
   }
 
-  // Counts only grow (a day's commits accumulate), so a smaller count from a partial
-  // response never erases soldiers already raised.
   upsertContributions(playerId: number, contributions: readonly Contribution[], now: number): ContributionDelta[] {
     const insert = this.db.prepare(
       `INSERT OR IGNORE INTO contributions (player_id, source_id, kind, day, count, repo, url, title, language, first_seen_at)

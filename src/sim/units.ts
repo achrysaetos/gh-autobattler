@@ -14,7 +14,6 @@ const ARCHER_APPROACH = 0.92;
 const UNSCREENED_PACE = 0.45;
 const MELEE_HOLD = 0.75;
 const HOLD_SPREAD = 0.85;
-// Disc radius per sqrt(holder) that leaves roughly 11 units between soldiers.
 const HOLD_SPACING = 12.4;
 const MAX_HOLD_SPREAD = 1.8;
 const APPROACH_MARGIN = 40;
@@ -28,8 +27,6 @@ const push: Vec = { x: 0, y: 0 };
 const moved: Vec = { x: 0, y: 0 };
 const spot: Vec = { x: 0, y: 0 };
 
-// Decide, strike, and steer every unit against start-of-tick positions. Damage and
-// new positions land in scratch buffers so index order never favors anyone.
 export function updateUnits(world: World, s: Scratch, ev: TickEvents): void {
   const { units, players, map, tick } = world;
   const d = derived(map);
@@ -101,7 +98,6 @@ export function updateUnits(world: World, s: Scratch, ev: TickEvents): void {
       const approach = Math.max(o.radius, spread) + APPROACH_MARGIN;
       if (ox * ox + oy * oy > approach * approach) {
         flowDirection(dir, map, d.flow[objective]!, u.x, u.y, o.x, o.y);
-        // Each unit marches in one of five lanes so columns have width.
         const lane = ((u.id % 5) - 2) * LANE_BIAS;
         const lx = dir.x - dir.y * lane;
         const ly = dir.y + dir.x * lane;
@@ -154,8 +150,6 @@ function nearestObjective(world: World, u: Unit): number {
   return best;
 }
 
-// A fixed point in the unit disc per unit id, so a held objective reads as a
-// spread garrison instead of a blob. Integer hashing keeps it engine-independent.
 function holdSpot(out: Vec, id: number): void {
   let h = Math.imul(id ^ 0x5bd1e995, 0x27d4eb2d);
   for (let tries = 0; tries < 8; tries++) {
@@ -173,8 +167,6 @@ function holdSpot(out: Vec, id: number): void {
   out.y = 0;
 }
 
-// Garrisons grow outward with their size so a big army holding a stronghold
-// still reads as soldiers rather than a solid disc.
 function holdRadii(world: World, s: Scratch): Float64Array {
   const objectives = world.map.objectives;
   const holders = new Int32Array(objectives.length);

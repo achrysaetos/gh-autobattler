@@ -12,8 +12,6 @@ export function captureFull(kind: ObjectiveKind): number {
 }
 const IDLE_DECAY = 2;
 
-// Progress counts up toward `capturer` while only that faction stands inside the
-// radius; a lone owner or a rival first has to wind it back down to zero.
 export function updateCaptures(world: World, s: Scratch, ev: TickEvents): void {
   const { units, map, objectives } = world;
   const hash = s.hash;

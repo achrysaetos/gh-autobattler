@@ -6,7 +6,6 @@ import type { Engine } from './engine.ts';
 import type { Ingest } from './ingest.ts';
 import { errorMessage, type Logger } from './log.ts';
 
-// Far above any GitHub databaseId and non-negative, because the sim reserves negative player ids for neutral garrisons.
 export const DEMO_ID_BASE = 10_000_000_000;
 
 const ADJECTIVES = ['quiet', 'amber', 'mossy', 'brisk', 'hollow', 'tidal', 'ember', 'lunar', 'rusty', 'velvet', 'copper', 'misty', 'jade', 'stormy', 'gentle', 'iron'];

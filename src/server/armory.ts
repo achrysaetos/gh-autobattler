@@ -8,8 +8,6 @@ export interface Muscle {
   language: string | null;
 }
 
-// Armies are a pure function of (stored contributions, today); this caches that function
-// per player and day so fielding every round player on each change stays cheap.
 export class Armory {
   private cache = new Map<number, Muscle & { today: IsoDay }>();
 

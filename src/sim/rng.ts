@@ -7,7 +7,6 @@ export function seedRng(seed: number): number {
   return (h ^ (h >>> 16)) | 0;
 }
 
-// mulberry32 with its state kept on the world so snapshots carry it.
 export function nextRandom(world: World): number {
   const s = (world.rng + 0x6d2b79f5) | 0;
   world.rng = s;

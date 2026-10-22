@@ -84,7 +84,6 @@ function paintTerrain(map: Omit<MapDef, 'terrain'>, factions: number, seed: numb
         continue;
       }
       if (nearObjective(objectives, x, y)) continue;
-      // Fold the angle into sector 0 so every sector samples the same noise.
       let a = (Math.atan2(y, x) - angle0) % sector;
       if (a < 0) a += sector;
       const sx = Math.cos(a) * r;

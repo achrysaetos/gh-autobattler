@@ -2,12 +2,9 @@ import type { MapDef } from './api.ts';
 import { buildFlowField, cellAt, type FlowField } from './flowfield.ts';
 import { buildHexLookup, type HexLookup } from './hex.ts';
 
-// Everything here is a pure function of the MapDef, so it is rebuilt on restore
-// instead of being shipped in snapshots.
 export interface Derived {
   flow: FlowField[];
   hexLookup: HexLookup;
-  // For each hex, the objective whose owner it drifts back to when empty, or -1.
   hexAnchor: Int32Array;
 }
 

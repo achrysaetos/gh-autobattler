@@ -1,6 +1,3 @@
-// Pure domain types for turning public GitHub activity into an army.
-// Everything here is JSON-safe and shared by server, client, and tests.
-
 export type IsoDay = string & { readonly __brand: 'IsoDay' };
 
 export type ContributionKind = 'commits' | 'merged_pr' | 'review';

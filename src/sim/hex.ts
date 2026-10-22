@@ -1,6 +1,5 @@
 import type { Hex } from './api.ts';
 
-// Pointy-top axial hexes: x = size * sqrt3 * (q + r / 2), y = size * 1.5 * r.
 const SQRT3 = Math.sqrt(3);
 
 export function hexCenter(q: number, r: number, size: number): { x: number; y: number } {

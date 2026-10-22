@@ -193,8 +193,6 @@ function resolveDeaths(world: World, s: Scratch, ev: TickEvents): void {
   units.length = w;
 }
 
-// Deaths arm the respawn timer; the once-a-second audit also arms it for any
-// player left short without one, so every path converges on the target army.
 function respawn(world: World, s: Scratch, ev: TickEvents): void {
   const { players, units, tick } = world;
   const audit = tick % TICKS_PER_SECOND === 0;

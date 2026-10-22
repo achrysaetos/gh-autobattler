@@ -11,7 +11,6 @@ const RALLY_RATIO = 1.0;
 const OBJECTIVE_BONUS = 3;
 const DISTANCE_SCALE = 500;
 const COVER_RATIO = 1.5;
-// Garrisons never reinforce, so they need a smaller safety margin than armies.
 const GARRISON_COVER_RATIO = 1.1;
 const CAPTURE_FORCE = 600;
 const CAPTURE_MOMENTUM = 3;
@@ -39,10 +38,6 @@ function strengthOf(kind: UnitKind, hp: number): number {
   return hp * STATS[kind]!.strength;
 }
 
-// A faction's war council. Warbands facing overwhelming odds fall back; the rest
-// are pooled into fronts, each contested objective sized to beat the strength
-// around it. Fronts are filled one at a time, nearest warbands first,
-// so attacks go in as coalitions big enough to win instead of piecemeal.
 export function runCouncil(world: World, s: Scratch, faction: number): void {
   const { map, units, players, objectives } = world;
   const d = derived(map);
@@ -137,7 +132,6 @@ export function runCouncil(world: World, s: Scratch, faction: number): void {
     free.splice(free.indexOf(band), 1);
   };
 
-  // Warbands finish what they started: a still-winnable front keeps its members.
   const total = available;
   for (const band of free.slice()) {
     const front = fronts.find((f) => f.objective === players[band.player]!.orderObjectiveId);
@@ -166,8 +160,6 @@ export function runCouncil(world: World, s: Scratch, faction: number): void {
     }
   }
 
-  // Leftovers reinforce the most valuable reachable front, or, when nothing is
-  // contested, post along the frontier so the faction holds a line, not a camp.
   const posted = new Int32Array(objectives.length);
   for (const f of fronts) posted[f.objective] = f.members;
   const frontCost = objectives.map((_, o) => nearestEnemyBase(world, faction, o));

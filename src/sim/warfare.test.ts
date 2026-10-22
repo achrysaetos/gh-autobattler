@@ -3,7 +3,6 @@ import { runWarfare, type WarfareCase } from './warfare.ts';
 
 const MIN_HOLD_SPACING = 12;
 
-// Unit counts per player, one array per faction: 2 to 6 players, 20 to 60 units.
 const CASES: WarfareCase[] = [
   { name: 'F2 balanced 3x40', factions: [[40, 40, 40], [40, 40, 40]] },
   { name: 'F2 uneven 165 vs 110', factions: [[60, 55, 50], [20, 25, 30, 35]] },

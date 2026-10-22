@@ -10,7 +10,6 @@ export interface Vec {
 const SEPARATION_RADIUS = 10;
 const SEPARATION_GAIN = 1.5;
 const MAX_PUSH_FACTOR = 1.4;
-// Below this a unit stays put: crowds settle instead of shimmering under tiny pushes.
 const DEADBAND2 = 0.25 * 0.25;
 
 export function towards(out: Vec, fromX: number, fromY: number, toX: number, toY: number): number {
@@ -27,8 +26,6 @@ export function towards(out: Vec, fromX: number, fromY: number, toX: number, toY
   return d;
 }
 
-// Aim two cells down the flow field so paths bend smoothly instead of zigzagging
-// between cell centers.
 export function flowDirection(out: Vec, map: MapDef, field: FlowField, x: number, y: number, goalX: number, goalY: number): void {
   const c = cellAt(map, x, y);
   const n1 = c < 0 || field.cost[c]! < 0 ? -1 : field.next[c]!;
@@ -58,7 +55,6 @@ export function separation(out: Vec, units: readonly Unit[], hash: SpatialHash, 
         const d2 = dx * dx + dy * dy;
         if (d2 >= r2) continue;
         if (d2 < 1e-6) {
-          // Exactly stacked: split them along an axis picked by id order.
           px += u.id < v.id ? 0.5 : -0.5;
           py += (u.id & 1) === 0 ? 0.3 : -0.3;
           continue;

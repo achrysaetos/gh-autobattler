@@ -14,8 +14,6 @@ interface Slot {
   given: number;
 }
 
-// Proportional scaling with "at least 1 of any kind they have", apportioned by largest
-// remainder so the total never exceeds the cap even when every share rounds up.
 export function fieldArmies(armies: ReadonlyMap<number, Fielded>, cap: number = FIELDED_CAP): Map<number, Fielded> {
   const ids = [...armies.keys()].sort((a, b) => a - b);
   const total = ids.reduce((sum, id) => sum + soldiers(armies.get(id)!), 0);

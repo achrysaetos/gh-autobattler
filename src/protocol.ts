@@ -1,6 +1,3 @@
-// Wire protocol between the authoritative server and spectator clients.
-// Transport: one WebSocket at /ws carrying JSON messages, plus a few REST reads.
-
 import type { TimedInput, WorldSnapshot } from './sim/api.ts';
 import type { Army, Fielded, LifetimeStats, Medal } from './rules/types.ts';
 

@@ -50,8 +50,6 @@ export interface DuelResult {
   kills: [number, number];
 }
 
-// Ten against ten on open ground near the citadel, fought until one side is gone
-// from the field (dead or fled) or the respawn timer would muddy the result.
 export function duel(a: UnitKind, b: UnitKind, seed = 1, size = 10): DuelResult {
   const world = arenaWorld(seed, 2);
   const kinds = [a, b];

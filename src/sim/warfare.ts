@@ -3,7 +3,6 @@ import { createWorld, generateMap, step } from './index.ts';
 
 export interface WarfareCase {
   name: string;
-  // units per player, one array per faction
   factions: number[][];
 }
 
@@ -21,8 +20,6 @@ export interface WarfareResult {
 
 const MINUTE = 600;
 
-// Ids follow the live server: seeded demo players count down from -1, real
-// players carry GitHub database ids.
 export function playerIdFor(n: number): number {
   return n % 2 === 0 ? -(n / 2 + 1) : 40_000_000 + n * 7919;
 }
@@ -99,9 +96,6 @@ export function runWarfare(c: WarfareCase, seed: number, minutes = 20): WarfareR
   return r;
 }
 
-// Mean nearest-neighbour distance between idle holders (warbands ordered to the
-// objective, not fighting) at every objective holding at least ten of them.
-// A blob reads near the separation radius; a garrison of soldiers well above it.
 function holdSpacing(world: ReturnType<typeof createWorld>): { sum: number; n: number } {
   const orderOf = new Map(world.players.map((p) => [p.playerId, p.orderObjectiveId]));
   let sum = 0;

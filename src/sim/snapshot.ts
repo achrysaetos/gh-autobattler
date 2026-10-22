@@ -43,7 +43,6 @@ function fromBase64(text: string): Uint8Array {
 const f64 = new Float64Array(1);
 const u32 = new Uint32Array(f64.buffer);
 
-// Murmur3-style mixing over 32-bit words; floats contribute their exact bits.
 export function checksum(world: World): number {
   let h = 0x811c9dc5 | 0;
   const int = (v: number) => {

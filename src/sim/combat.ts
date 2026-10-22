@@ -4,9 +4,6 @@ import { BEATS, STATS } from './stats.ts';
 
 const FAVORED_PULL = 0.6;
 
-// Nearest enemy within `radius`, with favored matchups looking 1/0.6 closer so
-// cavalry peel off toward archers and infantry toward cavalry. Searches rings of
-// buckets outward and stops once no farther ring can beat the best found.
 export function findTarget(units: readonly Unit[], hash: SpatialHash, i: number, radius: number): number {
   const u = units[i]!;
   const favored = BEATS[u.kind];

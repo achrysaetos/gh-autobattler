@@ -384,8 +384,6 @@ export class Engine {
     }
   }
 
-  // Replay after a restart re-derives events that were already narrated; sim time
-  // (not wall time) stamps these items so the watermark can skip the duplicates.
   private narrate(p: Extract<Phase, { kind: 'active' }>, events: TickEvents, dominatorBefore: number): void {
     const at = p.round.startsAt + p.world.tick * TICK_MS;
     if (at <= this.feedWatermark) return;

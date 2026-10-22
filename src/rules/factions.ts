@@ -91,8 +91,6 @@ function weaker(a: FactionPlan, b: FactionPlan): number {
   return a.soldiers - b.soldiers || a.members.length - b.members.length || a.id - b.id;
 }
 
-// Each language names at most one faction: the strongest claims win, and a faction outbid
-// on its top language falls back to its next one.
 function distinctLanguages(tallies: readonly ReadonlyMap<string, number>[]): (string | null)[] {
   const claims: { faction: number; lang: string; weight: number }[] = [];
   tallies.forEach((t, faction) => {
