@@ -31,6 +31,7 @@ export class TerritoryLayer {
   private flips: Flip[] = [];
   private bordersDirty = true;
   private lastBorderAt = 0;
+  private borderScale = 1;
 
   constructor(
     private map: MapDef,
@@ -69,7 +70,12 @@ export class TerritoryLayer {
     this.bordersDirty = true;
   }
 
-  update(territory: Int8Array, now: number): void {
+  update(territory: Int8Array, now: number, zoom: number): void {
+    const scale = Math.min(1, Math.max(0.35, 1.3 / zoom));
+    if (Math.abs(scale - this.borderScale) > this.borderScale * 0.15) {
+      this.borderScale = scale;
+      this.bordersDirty = true;
+    }
     for (let i = 0; i < territory.length; i++) {
       const owner = territory[i]!;
       if (owner === this.shown[i]) continue;
@@ -123,7 +129,8 @@ export class TerritoryLayer {
         list.push(i, d);
       }
     }
-    const inset = hexSize - 1.7;
+    const k = this.borderScale;
+    const inset = hexSize - 1.7 * k;
     const edge = (i: number, d: number, r: number) => {
       const h = hexes[i]!;
       const a = (DIRS[d]![2] * Math.PI) / 180;
@@ -135,10 +142,10 @@ export class TerritoryLayer {
     for (const list of byOwner.values()) {
       for (let k = 0; k < list.length; k += 2) edge(list[k]!, list[k + 1]!, hexSize - 0.4);
     }
-    g.stroke({ width: 4.2, color: 0x0b0d0c, alpha: 0.38, cap: 'round' });
+    g.stroke({ width: 4.2 * k, color: 0x0b0d0c, alpha: 0.38, cap: 'round' });
     for (const [owner, list] of byOwner) {
       for (let k = 0; k < list.length; k += 2) edge(list[k]!, list[k + 1]!, inset);
-      g.stroke({ width: 2.2, color: this.colorOf(owner), alpha: 0.95, cap: 'round' });
+      g.stroke({ width: 2.2 * k, color: this.colorOf(owner), alpha: 0.95, cap: 'round' });
     }
   }
 }

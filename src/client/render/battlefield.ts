@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, RenderTexture, Sprite, Text, Texture } from 'pixi.js';
+import { Application, Container, Graphics, RenderTexture, Sprite, Text, Texture, TilingSprite } from 'pixi.js';
 import { NEUTRAL, type MapDef, type World } from '../../sim/api.ts';
 import type { LockstepRunner } from '../net/runner.ts';
 import type { Store } from '../store.ts';
@@ -6,7 +6,7 @@ import { objectiveName } from '../names.ts';
 import { Camera } from './camera.ts';
 import { FxLayer } from './fx.ts';
 import { ObjectiveLayer } from './objectives.ts';
-import { NEUTRAL_TINT, canvas2d, toCss } from './paint.ts';
+import { NEUTRAL_TINT, canvas2d, seeded, toCss } from './paint.ts';
 import { paintTerrain, type TerrainArt } from './terrain.ts';
 import { TerritoryLayer } from './territory.ts';
 import { makeTextures, type Textures } from './textures.ts';
@@ -20,6 +20,7 @@ interface MapScene {
   map: MapDef;
   art: TerrainArt;
   terrain: Sprite;
+  grain: TilingSprite;
   territory: TerritoryLayer;
   objectives: ObjectiveLayer;
   names: { text: Text; x: number; y: number; major: boolean }[];
@@ -148,11 +149,12 @@ export class Battlefield {
     const small = Math.min(window.innerWidth, window.innerHeight) < 700;
     const art = paintTerrain(map, world.params.seed, small ? 2048 : 4096);
     const terrain = this.bakeTerrain(map, art);
+    const grain = this.grain(map.radius);
     const colorOf = (f: number) => this.colorOf(f);
     const territory = new TerritoryLayer(map, this.textures, colorOf);
     territory.reset(world.territory);
     const objectives = new ObjectiveLayer(map.objectives, colorOf);
-    this.groundLayer.addChild(terrain, territory.fills, territory.borders, objectives.ground, objectives.glyphs);
+    this.groundLayer.addChild(terrain, grain, territory.fills, territory.borders, objectives.ground, objectives.glyphs);
     const names = map.objectives.map((def) => {
       const major = def.kind !== 'stronghold';
       const text = new Text({
@@ -164,10 +166,35 @@ export class Battlefield {
       this.screenLayer.addChild(text);
       return { text, x: def.x, y: def.y + (def.kind === 'citadel' ? 40 : def.kind === 'base' ? 46 : 26), major };
     });
-    this.scene = { key, map, art, terrain, territory, objectives, names };
+    this.scene = { key, map, art, terrain, grain, territory, objectives, names };
     this.camera.resize(this.app.screen.width, this.app.screen.height);
     this.camera.fit(map.radius);
     return this.scene;
+  }
+
+  private grain(radius: number): TilingSprite {
+    const [c, ctx] = canvas2d(256, 256);
+    const rand = seeded(91);
+    for (let i = 0; i < 1400; i++) {
+      const x = rand() * 256;
+      const y = rand() * 256;
+      const light = rand() < 0.45;
+      ctx.strokeStyle = light ? 'rgba(220,214,150,0.22)' : 'rgba(10,14,4,0.3)';
+      ctx.lineWidth = 0.8 + rand() * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (rand() - 0.5) * 3, y - 2 - rand() * 4);
+      ctx.stroke();
+    }
+    const tiling = new TilingSprite({ texture: Texture.from(c), width: radius * 2, height: radius * 2 });
+    tiling.position.set(-radius, -radius);
+    tiling.tileScale.set(0.25);
+    const mask = new Graphics().circle(0, 0, radius - 2).fill(0xffffff);
+    tiling.addChild(mask);
+    mask.position.set(radius, radius);
+    tiling.mask = mask;
+    tiling.alpha = 0;
+    return tiling;
   }
 
   private bakeTerrain(map: MapDef, art: TerrainArt): Sprite {
@@ -251,7 +278,9 @@ export class Battlefield {
     this.vignette.width = cam.width;
     this.vignette.height = cam.height;
 
-    scene.territory.update(world.territory, now);
+    scene.grain.alpha = Math.min(0.5, Math.max(0, (cam.zoom - 1.1) * 0.35));
+    scene.grain.visible = scene.grain.alpha > 0;
+    scene.territory.update(world.territory, now, cam.zoom);
     scene.objectives.update(world, now);
     const view = cam.bounds(30);
     this.units.update(world, this.runner.alpha, (id, out) => this.runner.previousPosition(id, out), view, cam.zoom, selected);
