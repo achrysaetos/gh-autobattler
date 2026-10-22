@@ -176,7 +176,7 @@ export function runCouncil(world: World, s: Scratch, faction: number): void {
     let bestScore = 0;
     for (const f of fronts) {
       const dist = pathTo(band, f.objective);
-      if (dist === Infinity || f.assigned >= f.need * REINFORCE_CAP) continue;
+      if (dist === Infinity || f.need > total || f.assigned >= f.need * REINFORCE_CAP) continue;
       const score = f.value / (1 + f.members) / (1 + dist / DISTANCE_SCALE);
       if (score > bestScore) {
         bestScore = score;
