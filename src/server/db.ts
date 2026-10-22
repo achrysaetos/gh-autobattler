@@ -300,6 +300,7 @@ export class Store {
   }
 
   upsertPlayer(p: Omit<PlayerRow, 'lastPolledAt' | 'pollError'>): void {
+    if (!Number.isSafeInteger(p.id) || p.id < 0) throw new Error(`player id ${p.id} collides with the sim's neutral range`);
     this.db
       .prepare(
         `INSERT INTO players (id, node_id, login, avatar_url, created_at_github, enlisted_at, demo)

@@ -179,7 +179,7 @@ function resolveDeaths(world: World, s: Scratch, ev: TickEvents): void {
       units[w++] = u;
       continue;
     }
-    const killer = s.killer[i]!;
+    const killer = s.lastHitBy[i]!;
     const killerPlayerId = killer >= 0 ? players[killer]!.playerId : NEUTRAL;
     ev.deaths.push({ unitId: u.id, x: u.x, y: u.y, faction: u.faction, kind: u.kind, playerId: u.playerId, killerPlayerId });
     if (killer >= 0) players[killer]!.kills++;

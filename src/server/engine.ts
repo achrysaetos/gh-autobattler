@@ -43,7 +43,7 @@ const EVENT_FEED_KINDS: readonly FeedItem['kind'][] = ['capture', 'domination'];
 
 export class Engine {
   private phase: Phase = { kind: 'none' };
-  private feedWatermark = Number.NEGATIVE_INFINITY;
+  private narratedThroughSimMs = Number.NEGATIVE_INFINITY;
   private timers: NodeJS.Timeout[] = [];
 
   constructor(private readonly deps: EngineDeps) {}
@@ -223,7 +223,7 @@ export class Engine {
     const started = performance.now();
     const factions = this.deps.store.factions(round.id);
     const world = this.restoreWorld(round);
-    this.feedWatermark = this.deps.store.lastFeedAt(round.id, EVENT_FEED_KINDS);
+    this.narratedThroughSimMs = this.deps.store.lastFeedAt(round.id, EVENT_FEED_KINDS);
     if (round.status === 'ended') {
       this.phase = { kind: 'ended', round, factions, world };
       return;
@@ -311,7 +311,7 @@ export class Engine {
     });
 
     this.phase = { kind: 'active', round, factions, world, pending: inputs, seq };
-    this.feedWatermark = Number.NEGATIVE_INFINITY;
+    this.narratedThroughSimMs = Number.NEGATIVE_INFINITY;
     this.persistSnapshot(round, world);
     this.deps.log.info('round started', { round: id, name: round.name, factions: plan.length, players: players.length });
     this.feed({ at: now, kind: 'round', playerId: null, faction: null, message: `${round.name} begins. ${plan.length} factions take the field.`, url: null, units: null });
@@ -386,7 +386,7 @@ export class Engine {
 
   private narrate(p: Extract<Phase, { kind: 'active' }>, events: TickEvents, dominatorBefore: number): void {
     const at = p.round.startsAt + p.world.tick * TICK_MS;
-    if (at <= this.feedWatermark) return;
+    if (at <= this.narratedThroughSimMs) return;
     const factionName = (f: number) => p.factions[f]?.name ?? `Faction ${f + 1}`;
     for (const c of events.captures) {
       if (c.faction === NEUTRAL) continue;

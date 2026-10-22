@@ -10,7 +10,7 @@ export interface Scratch {
   nx: Float64Array;
   ny: Float64Array;
   damage: Float64Array;
-  killer: Int32Array;
+  lastHitBy: Int32Array;
 }
 
 const cache = new WeakMap<World, Scratch>();
@@ -27,7 +27,7 @@ export function scratchFor(world: World): Scratch {
       nx: new Float64Array(cap),
       ny: new Float64Array(cap),
       damage: new Float64Array(cap),
-      killer: new Int32Array(cap),
+      lastHitBy: new Int32Array(cap),
     };
     cache.set(world, s);
   }

@@ -3,7 +3,7 @@ import { createWorld, generateMap, step } from './index.ts';
 
 export interface WarfareCase {
   name: string;
-  factions: number[][];
+  unitsPerPlayerByFaction: number[][];
 }
 
 export interface WarfareResult {
@@ -20,16 +20,16 @@ export interface WarfareResult {
 
 const MINUTE = 600;
 
-export function playerIdFor(n: number): number {
+export function mixedSignPlayerId(n: number): number {
   return n % 2 === 0 ? -(n / 2 + 1) : 40_000_000 + n * 7919;
 }
 
 export function warfareInputs(c: WarfareCase): SimInput[] {
   const inputs: SimInput[] = [];
   let n = 0;
-  for (let faction = 0; faction < c.factions.length; faction++) {
-    for (const size of c.factions[faction]!) {
-      const playerId = playerIdFor(n);
+  for (let faction = 0; faction < c.unitsPerPlayerByFaction.length; faction++) {
+    for (const size of c.unitsPerPlayerByFaction[faction]!) {
+      const playerId = mixedSignPlayerId(n);
       const mix = n % 3;
       const archers = Math.floor(size * (mix === 1 ? 0.5 : 0.25));
       const cavalry = Math.floor(size * (mix === 2 ? 0.45 : 0.15));
@@ -42,8 +42,8 @@ export function warfareInputs(c: WarfareCase): SimInput[] {
 }
 
 export function runWarfare(c: WarfareCase, seed: number, minutes = 20): WarfareResult {
-  const expectedUnits = c.factions.flat().reduce((a, b) => a + b, 0);
-  const params = { seed, factionCount: c.factions.length, expectedUnits };
+  const expectedUnits = c.unitsPerPlayerByFaction.flat().reduce((a, b) => a + b, 0);
+  const params = { seed, factionCount: c.unitsPerPlayerByFaction.length, expectedUnits };
   const map = generateMap(params);
   const world = createWorld(params, map);
   const inputs = warfareInputs(c);

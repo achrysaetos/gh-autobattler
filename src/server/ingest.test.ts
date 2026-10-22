@@ -111,3 +111,11 @@ describe('poller budget', () => {
     expect(poller.gapMs(10_000)).toBe(1200);
   });
 });
+
+describe('player identity', () => {
+  it('refuses player ids in the sim neutral range', () => {
+    h = harness();
+    expect(() => addPlayer(h.store, -1, 'ghost')).toThrow(/neutral range/);
+    expect(() => addPlayer(h.store, 1.5, 'half')).toThrow(/neutral range/);
+  });
+});
