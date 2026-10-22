@@ -30,6 +30,8 @@ let kills = 0;
 let captures = 0;
 let maxDeathsPerSecond = 0;
 let deathsThisSecond = 0;
+let routs = 0;
+const wasRetreating = new Map<number, boolean>();
 const started = performance.now();
 for (let t = 0; t < minutes * 60 * TICKS_PER_SECOND; t++) {
   const ev = step(world, t === 0 ? inputs : []);
@@ -40,6 +42,10 @@ for (let t = 0; t < minutes * 60 * TICKS_PER_SECOND; t++) {
     const name = map.objectives[c.objectiveId]!.kind;
     console.log(`  t=${(world.tick / 10).toFixed(0)}s faction ${c.faction} took ${name} #${c.objectiveId} from ${c.previous} (${c.playerIds.length} players)`);
   }
+  for (const p of world.players) {
+    if (p.retreating && !wasRetreating.get(p.playerId)) routs++;
+    wasRetreating.set(p.playerId, p.retreating);
+  }
   if (world.tick % TICKS_PER_SECOND === 0) {
     maxDeathsPerSecond = Math.max(maxDeathsPerSecond, deathsThisSecond);
     deathsThisSecond = 0;
@@ -49,7 +55,7 @@ for (let t = 0; t < minutes * 60 * TICKS_PER_SECOND; t++) {
       .filter((o) => map.objectives[o.id]!.kind !== 'base')
       .map((o) => (o.owner === NEUTRAL ? '.' : String(o.owner)))
       .join('');
-    console.log(`minute ${world.tick / 600}: alive ${world.units.length}, deaths ${kills}, captures ${captures}, owners [${owners}]`);
+    console.log(`minute ${world.tick / 600}: alive ${world.units.length}, deaths ${kills}, captures ${captures}, routs ${routs}, owners [${owners}]`);
     for (const f of world.factions) {
       const members = world.players.filter((p) => p.faction === f.id);
       const k = members.reduce((n, p) => n + p.kills, 0);

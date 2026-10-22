@@ -31,7 +31,6 @@ export function run(world: World, ticks: number, firstInputs: readonly SimInput[
   for (let t = 0; t < ticks; t++) step(world, t === 0 ? firstInputs : []);
 }
 
-// An open field with no garrisons: a clean arena for isolated mechanics.
 export function arenaWorld(seed: number, factionCount: number): World {
   const params = { seed, factionCount, expectedUnits: 40 };
   const map = generateMap(params);

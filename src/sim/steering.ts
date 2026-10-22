@@ -7,7 +7,7 @@ export interface Vec {
   y: number;
 }
 
-export const SEPARATION_RADIUS = 10;
+const SEPARATION_RADIUS = 10;
 const SEPARATION_GAIN = 1.5;
 const MAX_PUSH_FACTOR = 1.4;
 // Below this a unit stays put: crowds settle instead of shimmering under tiny pushes.
@@ -74,7 +74,6 @@ export function separation(out: Vec, units: readonly Unit[], hash: SpatialHash, 
   out.y = py * SEPARATION_GAIN;
 }
 
-// Combine intent and separation, clamp, and slide along walls.
 export function resolveMove(out: Vec, map: MapDef, x: number, y: number, vx: number, vy: number, speed: number): void {
   const max = speed * MAX_PUSH_FACTOR;
   const m2 = vx * vx + vy * vy;

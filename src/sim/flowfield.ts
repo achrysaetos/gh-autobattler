@@ -34,7 +34,6 @@ export function cellCenterY(map: MapDef, cell: number): number {
 const DX = [1, -1, 0, 0, 1, 1, -1, -1];
 const DY = [0, 0, 1, -1, 1, -1, 1, -1];
 
-// Dijkstra outward from the goal; `next` points each cell one step back toward it.
 // Diagonals may not cut a blocked corner, so units never clip through rock.
 export function buildFlowField(map: MapDef, goalCell: number): FlowField {
   const { navCols: cols, navRows: rows, terrain } = map;

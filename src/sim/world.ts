@@ -1,5 +1,6 @@
 import {
   NEUTRAL,
+  UNIT_KINDS,
   UnitKind,
   type MapDef,
   type PlayerState,
@@ -109,7 +110,7 @@ function applyInput(world: World, s: Scratch, input: SimInput, ev: TickEvents): 
   player.rank = Math.max(0, input.rank);
   const alive = [0, 0, 0];
   for (const u of world.units) if (u.playerId === player.playerId) alive[u.kind]!++;
-  for (const kind of [UnitKind.Infantry, UnitKind.Archer, UnitKind.Cavalry]) {
+  for (const kind of UNIT_KINDS) {
     reinforce(world, player, kind, player.target[kind] - alive[kind]!, ev);
   }
 }
@@ -192,15 +193,9 @@ function resolveDeaths(world: World, s: Scratch, ev: TickEvents): void {
 }
 
 function respawn(world: World, s: Scratch, ev: TickEvents): void {
-  const { players, units } = world;
-  let due = false;
-  for (const p of players) {
-    if ((p.respawnAt[0] >= 0 && p.respawnAt[0] <= world.tick) || (p.respawnAt[1] >= 0 && p.respawnAt[1] <= world.tick) || (p.respawnAt[2] >= 0 && p.respawnAt[2] <= world.tick)) {
-      due = true;
-      break;
-    }
-  }
-  if (!due) return;
+  const { players, units, tick } = world;
+  const isDue = (p: PlayerState) => p.respawnAt.some((at) => at >= 0 && at <= tick);
+  if (!players.some(isDue)) return;
   const alive = new Int32Array(players.length * 3);
   for (const u of units) {
     const p = u.playerId < 0 ? undefined : s.playerIndex.get(u.playerId);
@@ -208,9 +203,9 @@ function respawn(world: World, s: Scratch, ev: TickEvents): void {
   }
   for (let p = 0; p < players.length; p++) {
     const player = players[p]!;
-    for (const kind of [UnitKind.Infantry, UnitKind.Archer, UnitKind.Cavalry]) {
+    for (const kind of UNIT_KINDS) {
       const at = player.respawnAt[kind];
-      if (at < 0 || at > world.tick) continue;
+      if (at < 0 || at > tick) continue;
       reinforce(world, player, kind, player.target[kind] - alive[p * 3 + kind]!, ev);
     }
   }

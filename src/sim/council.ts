@@ -12,6 +12,7 @@ const OBJECTIVE_BONUS = 3;
 const IDLE_HOLD_VALUE = 0.15;
 const DEFEND_VALUE = 1.6;
 const SPREAD_PENALTY = 0.6;
+const COVERED_RATIO = 1.5;
 const DISTANCE_SCALE = 500;
 const HYSTERESIS = 1.3;
 const CAPTURE_MOMENTUM = 3;
@@ -20,7 +21,6 @@ function strengthOf(kind: UnitKind, hp: number): number {
   return hp * STATS[kind]!.strength;
 }
 
-// One faction's war council: every warband (a player's units) gets an objective.
 // Warbands are planned strongest first so later ones see where earlier ones went.
 export function runCouncil(world: World, s: Scratch, faction: number): void {
   const { map, units, players, objectives } = world;
@@ -132,7 +132,9 @@ export function runCouncil(world: World, s: Scratch, faction: number): void {
       }
       const ratio = (friendNear[o]! + plannedStr[o]! + strength) / (enemy + 1);
       const feasible = ratio >= 1.2 ? 1 : ratio < 0.5 ? 0.05 : (ratio - 0.4) / 0.8;
-      const spread = 1 / (1 + SPREAD_PENALTY * plannedCount[o]!);
+      // Concentrate until an objective is covered, then spread to other fronts.
+      const covered = friendNear[o]! + plannedStr[o]! >= enemy * COVERED_RATIO + strength * 0.5;
+      const spread = covered ? 1 / (1 + SPREAD_PENALTY * plannedCount[o]!) : 1;
       const lightlyHeld = enemy < strength * 0.5;
       const cavalry = lightlyHeld ? 1 + 0.8 * cavShare : 1 - 0.4 * cavShare;
       let utility = (value * feasible * spread * cavalry) / (1 + dist / DISTANCE_SCALE);

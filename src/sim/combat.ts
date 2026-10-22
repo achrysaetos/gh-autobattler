@@ -25,9 +25,8 @@ export function findTarget(units: readonly Unit[], hash: SpatialHash, i: number,
     const y1 = by + k;
     for (let y = y0; y <= y1; y++) {
       if (y < 0 || y >= hash.rows) continue;
-      const edgeRow = y === y0 || y === y1;
-      const step = edgeRow ? 1 : 2 * k;
-      for (let x = bx - k; x <= bx + k; x += step === 0 ? 1 : step) {
+      const step = y === y0 || y === y1 ? 1 : 2 * k;
+      for (let x = bx - k; x <= bx + k; x += step) {
         if (x < 0 || x >= hash.cols) continue;
         for (let j = hash.head[y * hash.cols + x]!; j >= 0; j = hash.next[j]!) {
           const v = units[j]!;
@@ -50,7 +49,6 @@ export function findTarget(units: readonly Unit[], hash: SpatialHash, i: number,
 
 const SCREEN_RADIUS = 70;
 
-// An archer is screened when a friendly melee unit nearby stands closer to its target.
 export function isScreened(units: readonly Unit[], hash: SpatialHash, i: number, target: Unit): boolean {
   const u = units[i]!;
   const tdx = target.x - u.x;
