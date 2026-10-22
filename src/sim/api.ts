@@ -100,6 +100,7 @@ export interface PlayerState {
   kills: number;
   losses: number;
   captures: number;
+  retreating: boolean;
 }
 
 export interface FactionState {
