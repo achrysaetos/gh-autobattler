@@ -1,4 +1,4 @@
-import { NEUTRAL, type TickEvents, type World } from './api.ts';
+import { NEUTRAL, type ObjectiveKind, type TickEvents, type World } from './api.ts';
 import type { Scratch } from './scratch.ts';
 import { bucketX, bucketY } from './spatial.ts';
 import { DOMINATION_TICKS } from './stats.ts';
@@ -6,6 +6,10 @@ import { DOMINATION_TICKS } from './stats.ts';
 export const CAPTURE_FULL = 1500;
 const CITADEL_FULL = 3000;
 const MAX_CAPTURE_RATE = 10;
+
+export function captureFull(kind: ObjectiveKind): number {
+  return kind === 'citadel' ? CITADEL_FULL : CAPTURE_FULL;
+}
 const IDLE_DECAY = 2;
 
 // Progress counts up toward `capturer` while only that faction stands inside the
@@ -55,7 +59,7 @@ export function updateCaptures(world: World, s: Scratch, ev: TickEvents): void {
     }
     state.capturer = present;
     state.progress += rate;
-    if (state.progress < (def.kind === 'citadel' ? CITADEL_FULL : CAPTURE_FULL)) continue;
+    if (state.progress < captureFull(def.kind)) continue;
     const previous = state.owner;
     state.owner = present;
     state.capturer = NEUTRAL;

@@ -1,6 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { NEUTRAL, type ObjectiveDef, type World } from '../../sim/api.ts';
 import { GOLD, NEUTRAL_TINT, shade } from './paint.ts';
+import { captureFull } from '../simModule.ts';
 
 const OUTLINE = 0x16130f;
 const STONE = 0xcdbf9c;
@@ -146,7 +147,7 @@ export class ObjectiveLayer {
       ring.clear();
       if (item.def.kind !== 'base' && state.progress > 0 && state.capturer !== NEUTRAL) {
         const r = (item.def.kind === 'citadel' ? 44 : 27) / (item.def.kind === 'stronghold' ? 1.25 : 1);
-        const p = Math.min(1, Math.max(0, state.progress));
+        const p = Math.min(1, Math.max(0, state.progress / captureFull(item.def.kind)));
         ring.circle(0, 0, r).stroke({ width: 5, color: 0x0b0d0c, alpha: 0.55 });
         ring.moveTo(0, -r).arc(0, 0, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p).stroke({ width: 3.4, color: this.colorOf(state.capturer), cap: 'round' });
         const blink = 0.5 + 0.5 * Math.sin(now / 140);
