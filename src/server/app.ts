@@ -10,11 +10,15 @@ import { buildHttp, Hub } from './http.ts';
 import { Ingest } from './ingest.ts';
 import { consoleLogger, type Logger } from './log.ts';
 import { Poller } from './poller.ts';
+import { Recruiter } from './recruit.ts';
+import { Rooms } from './rooms.ts';
 import { Scheduler } from './scheduler.ts';
 
 export interface Server {
   app: FastifyInstance;
   campaign: Campaign;
+  rooms: Rooms;
+  scheduler: Scheduler;
   store: Store;
   listen(): Promise<string>;
   shutdown(): Promise<void>;
@@ -40,9 +44,18 @@ export async function createServer(
     log,
     channel: hub.channel('campaign'),
   });
-  const scheduler = new Scheduler([campaign], log);
+  const rooms = new Rooms({
+    store,
+    sim,
+    armory,
+    log,
+    config: { roomMs: config.roomMs, maxLive: config.roomMaxLive },
+    channelFor: (slug) => hub.channel(`room:${slug}`),
+  });
+  const scheduler = new Scheduler([campaign, rooms], log);
   const ingest = new Ingest(store, armory, campaign);
   const github = config.githubToken ? createGithubClient(config.githubToken, opts.fetchImpl) : null;
+  const recruiter = new Recruiter({ store, armory, ingest, rooms, github, log, clock });
   const poller = github ? new Poller({ store, github, ingest, log, clock }) : null;
 
   if (!github) log.warn('GITHUB_TOKEN is not set: GitHub ingestion is disabled, armies only change through demo players');
@@ -55,15 +68,18 @@ export async function createServer(
     log.info('demo players ready', { requested: config.demoPlayers, created: created.length });
   }
   campaign.boot(now);
+  rooms.boot(now);
   if (config.demoPlayers > 0) enlistDemoPlayers(store, campaign, now);
   const ticker = config.demoPlayers > 0 ? new DemoTicker({ store, ingest, campaign, log, clock }) : null;
 
-  const app = await buildHttp({ config, store, campaign, github, poller, log, clock, fetchImpl: opts.fetchImpl, hub, ingestionEnabled: github !== null });
+  const app = await buildHttp({ config, store, campaign, github, poller, log, clock, fetchImpl: opts.fetchImpl, hub, rooms, recruiter, ingestionEnabled: github !== null });
 
   let closing = false;
   return {
     app,
     campaign,
+    rooms,
+    scheduler,
     store,
     async listen() {
       if (background) {
@@ -82,6 +98,7 @@ export async function createServer(
       poller?.stop();
       ticker?.stop();
       campaign.snapshot();
+      rooms.snapshotAll();
       hub.closeAll();
       await app.close();
       db.close();

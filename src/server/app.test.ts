@@ -17,7 +17,9 @@ const fakeGithub = (async (_url: string, init: RequestInit) => {
   const body = String(init.body);
   if (body.includes('PushfrontLogin')) {
     const { node, rateLimit } = JSON.parse(fixture).data;
-    return new Response(JSON.stringify({ data: { user: node, rateLimit } }));
+    const login = String(JSON.parse(body).variables.login).toLowerCase();
+    const user = login === 'alice' ? node : login === 'bob' ? { ...node, id: 'U_bob', databaseId: 1002, login: 'bob' } : null;
+    return new Response(JSON.stringify({ data: { user, rateLimit } }));
   }
   return new Response(fixture);
 }) as unknown as typeof fetch;
@@ -33,6 +35,61 @@ async function boot(env: Record<string, string>) {
   server = await createServer(config, createFakeSim(), { log: silentLogger, clock: () => NOW, fetchImpl: fakeGithub, background: false });
   return server;
 }
+
+function firstMessage(ws: WebSocket): Promise<ServerMessage> {
+  return new Promise((resolve, reject) => {
+    ws.once('message', (d) => resolve(JSON.parse(d.toString()) as ServerMessage));
+    ws.once('error', reject);
+  });
+}
+
+function closeOf(ws: WebSocket): Promise<{ code: number; reason: string }> {
+  return new Promise((resolve) => ws.once('close', (code, reason) => resolve({ code, reason: reason.toString() })));
+}
+
+describe('rooms over HTTP and WebSocket', () => {
+  it('creates a room, lists it, streams it on its own channel, and closes unknown or missing slugs', async () => {
+    const s = await boot({ GITHUB_TOKEN: 'srv' });
+    const created = await s.app.inject({ method: 'POST', url: '/api/rooms', payload: { logins: ['alice', 'bob'] } });
+    expect(created.statusCode).toBe(201);
+    const { slug } = created.json() as { ok: true; slug: string };
+
+    const listed = (await s.app.inject({ url: '/api/rooms' })).json();
+    expect(listed.recent).toEqual([]);
+    expect(listed.live).toMatchObject([{ slug, name: '@alice vs @bob', status: 'active', fighters: [{ login: 'alice', soldiers: 8 }, { login: 'bob', soldiers: 8 }] }]);
+
+    const base = (await s.listen()).replace('http', 'ws');
+    const roomHello = await firstMessage(new WebSocket(`${base}/ws?room=${slug}`));
+    expect(roomHello.type === 'hello' && roomHello.round).toMatchObject({ roomSlug: slug, status: 'active' });
+    expect(roomHello.type === 'hello' && roomHello.players.map((p) => p.login)).toEqual(['alice', 'bob']);
+    const campaignHello = await firstMessage(new WebSocket(`${base}/ws`));
+    expect(campaignHello.type === 'hello' && campaignHello.round.roomSlug).toBeNull();
+    expect(campaignHello.type === 'hello' && campaignHello.players).toEqual([]);
+
+    expect(await closeOf(new WebSocket(`${base}/ws?room=zzzzzzzz`))).toEqual({ code: 4404, reason: 'room not found' });
+    expect(await closeOf(new WebSocket(`${base}/ws?room=`))).toEqual({ code: 4400, reason: 'room slug missing' });
+  });
+
+  it('rate limits room creation per client address and answers rooms_full past the live limit', async () => {
+    const s = await boot({ GITHUB_TOKEN: 'srv', ROOM_MAX_LIVE: '7' });
+    const post = (ip: string) => s.app.inject({ method: 'POST', url: '/api/rooms', payload: { logins: ['alice', 'bob'] }, remoteAddress: ip });
+    for (let i = 0; i < 6; i++) expect((await post('10.0.0.1')).statusCode).toBe(201);
+    const limited = await post('10.0.0.1');
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json()).toMatchObject({ ok: false, error: 'rate_limited' });
+    expect((await post('10.0.0.2')).statusCode).toBe(201);
+    const full = await post('10.0.0.3');
+    expect(full.statusCode).toBe(503);
+    expect(full.json()).toMatchObject({ ok: false, error: 'rooms_full' });
+  });
+
+  it('answers github_unavailable without a server token', async () => {
+    const s = await boot({});
+    const res = await s.app.inject({ method: 'POST', url: '/api/rooms', payload: { logins: ['alice', 'bob'] } });
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).toMatchObject({ ok: false, error: 'github_unavailable' });
+  });
+});
 
 describe('server', () => {
   it('signs in through dev auth, enlists, polls at once, and never leaks private repos', async () => {
