@@ -77,6 +77,25 @@ describe('client', () => {
     });
   });
 
+  it('looks a user up by login, and reads a missing login as not found despite the GraphQL error', async () => {
+    const vars: Record<string, string>[] = [];
+    const fakeFetch = (async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      vars.push(body.variables);
+      if (body.variables.login === 'ghost') {
+        return new Response(JSON.stringify({ data: { user: null, rateLimit: fixture.data.rateLimit }, errors: [{ type: 'NOT_FOUND', message: 'Could not resolve to a User' }] }));
+      }
+      return new Response(JSON.stringify({ data: { user: fixture.data.node, rateLimit: fixture.data.rateLimit } }));
+    }) as unknown as typeof fetch;
+    const now = Date.parse('2026-10-22T12:00:00Z');
+    const client = createGithubClient('srv-token', fakeFetch);
+    const found = await client.fetchContributionsByLogin('Alice', now);
+    expect('notFound' in found ? null : found.account).toMatchObject({ databaseId: 1001, login: 'alice', type: 'User' });
+    expect('notFound' in found ? [] : found.contributions.map((c) => c.sourceId)).toContain('pr:PR_good');
+    expect(await client.fetchContributionsByLogin('ghost', now)).toMatchObject({ notFound: true });
+    expect(vars[0]).toEqual({ login: 'Alice', from: '2026-08-27T12:00:00.000Z', to: '2026-10-22T12:00:00.000Z' });
+  });
+
   it('fetchViewer returns only the identity fields', async () => {
     const fakeFetch = (async () =>
       new Response(JSON.stringify({ id: 7, node_id: 'U_7', login: 'x', avatar_url: 'a', created_at: '2020-01-01T00:00:00Z', type: 'User', email: 'x@y.z' }))) as unknown as typeof fetch;

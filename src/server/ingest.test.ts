@@ -105,7 +105,7 @@ describe('end to end: GitHub response to muster input', () => {
 describe('poller budget', () => {
   it('spreads polls over the period and stays under 60% of the hourly points', () => {
     h = harness();
-    const poller = new Poller({ store: h.store, github: { fetchContributions: async () => { throw new Error('unused'); }, resolveLogin: async () => null }, ingest: h.ingest, log: silentLogger });
+    const poller = new Poller({ store: h.store, github: { fetchContributions: async () => { throw new Error('unused'); }, fetchContributionsByLogin: async () => { throw new Error('unused'); } }, ingest: h.ingest, log: silentLogger });
     expect(poller.gapMs(60)).toBe(10_000);
     (poller as unknown as { rate: object }).rate = { limit: 5000, remaining: 5000, resetAtMs: 0, cost: 1 };
     expect(poller.gapMs(10_000)).toBe(1200);

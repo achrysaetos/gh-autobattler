@@ -116,9 +116,7 @@ export function registerAuth(app: FastifyInstance, deps: AuthDeps): void {
     const query = DevQuery.safeParse(req.query);
     if (!query.success) return reply.code(400).send({ error: 'login required' });
     if (!deps.github) return reply.code(503).send({ error: 'dev auth needs GITHUB_TOKEN' });
-    const nodeId = await deps.github.resolveLogin(query.data.login);
-    if (!nodeId) return reply.code(404).send({ error: 'no such GitHub user' });
-    const result = await deps.github.fetchContributions(nodeId, deps.clock());
+    const result = await deps.github.fetchContributionsByLogin(query.data.login, deps.clock());
     if ('notFound' in result) return reply.code(404).send({ error: 'no such GitHub user' });
     return signIn(reply, result.account);
   });

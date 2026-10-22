@@ -15,7 +15,10 @@ const fixture = readFileSync(new URL('./testing/github-fixture.json', import.met
 
 const fakeGithub = (async (_url: string, init: RequestInit) => {
   const body = String(init.body);
-  if (body.includes('PushfrontLogin')) return new Response(JSON.stringify({ data: { user: { id: 'U_alice' } } }));
+  if (body.includes('PushfrontLogin')) {
+    const { node, rateLimit } = JSON.parse(fixture).data;
+    return new Response(JSON.stringify({ data: { user: node, rateLimit } }));
+  }
   return new Response(fixture);
 }) as unknown as typeof fetch;
 
