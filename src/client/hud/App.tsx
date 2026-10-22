@@ -26,7 +26,7 @@ function ConnectionPill() {
   );
 }
 
-function CommandBar({ onDialog, mock }: { onDialog(d: Dialog): void; mock: boolean }) {
+function CommandBar({ onDialog, mock, withFeed }: { onDialog(d: Dialog): void; mock: boolean; withFeed: boolean }) {
   const hud = useHud();
   const { store } = useEnv();
   const viewer = hud.viewerPlayerId !== null ? hud.players.get(hud.viewerPlayerId) : undefined;
@@ -38,6 +38,7 @@ function CommandBar({ onDialog, mock }: { onDialog(d: Dialog): void; mock: boole
           <div className="brand-name">PUSHFRONT</div>
           <div className="brand-sub">{mock ? 'Preview battle · mock server' : 'Public GitHub activity, at war'}</div>
         </div>
+        <ConnectionPill />
       </div>
       <div className="command-row">
         {viewer ? (
@@ -57,11 +58,13 @@ function CommandBar({ onDialog, mock }: { onDialog(d: Dialog): void; mock: boole
             <span className="label-wide">Articles of </span>War
           </span>
         </button>
-        <button className="btn" onClick={() => onDialog({ kind: 'standings' })}>
-          Standings
+        <button className="icon-btn" onClick={() => onDialog({ kind: 'standings' })} aria-label="Standings" title="Standings">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+            <path d="M4 2h8v3a4 4 0 0 1-8 0Z M4 3H1.5v1.5A2.5 2.5 0 0 0 4 7 M12 3h2.5v1.5A2.5 2.5 0 0 1 12 7 M8 9v3 M5 14h6" fill="none" stroke="#f0d28a" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
+          </svg>
         </button>
-        <ConnectionPill />
       </div>
+      {withFeed && hud.hasWorld && <Dispatches />}
     </div>
   );
 }
@@ -178,10 +181,7 @@ function Hud({ mock }: { mock: boolean }) {
   return (
     <HudContext.Provider value={{ ...env, openProfile: (playerId) => setDialog({ kind: 'profile', playerId }) }}>
       <div className="hud">
-        <CommandBar onDialog={setDialog} mock={mock} />
-        {!mobile && (
-          <div className="left-col">{hud.hasWorld && <Dispatches />}</div>
-        )}
+        <CommandBar onDialog={setDialog} mock={mock} withFeed={!mobile} />
         <Scoreboard />
         <Toasts />
         {!mobile && <SideColumn />}
@@ -216,13 +216,17 @@ export function App({ store, runner, api, mock }: { store: Store; runner: Lockst
     let alive = true;
     void document.fonts.load('700 13px Cinzel').finally(() => {
       if (!alive) return;
-      void bf.mount(host.current!).then(() => alive && setBattlefield(bf));
+      void bf.mount(host.current!).then(() => {
+        if (!alive) return;
+        setBattlefield(bf);
+        if (mock) Object.assign(window, { pushfront: { ...(window as { pushfront?: object }).pushfront, battlefield: bf } });
+      });
     });
     return () => {
       alive = false;
       bf.destroy();
     };
-  }, [runner, store]);
+  }, [runner, store, mock]);
   const env = useMemo<HudEnv>(() => ({ store, api, battlefield, openProfile: () => {} }), [store, api, battlefield]);
   return (
     <HudContext.Provider value={env}>

@@ -31,21 +31,30 @@ export function ArticlesOfWar({ onClose }: { onClose(): void }) {
         <tbody>
           <tr>
             <td>
-              <UnitIcon kind={UnitKind.Infantry} /> Infantry
+              <span className="troop-name">
+                <UnitIcon kind={UnitKind.Infantry} />
+                Infantry
+              </span>
             </td>
             <td>Commits that day</td>
             <td>1 for 1 commit, 2 for 2 to 3, 3 for 4 to 7, 4 for 8 or more</td>
           </tr>
           <tr>
             <td>
-              <UnitIcon kind={UnitKind.Archer} /> Archers
+              <span className="troop-name">
+                <UnitIcon kind={UnitKind.Archer} />
+                Archers
+              </span>
             </td>
             <td>Reviews of other people's pull requests</td>
             <td>1 each, at most 3</td>
           </tr>
           <tr>
             <td>
-              <UnitIcon kind={UnitKind.Cavalry} /> Cavalry
+              <span className="troop-name">
+                <UnitIcon kind={UnitKind.Cavalry} />
+                Cavalry
+              </span>
             </td>
             <td>Your pull requests merged by someone else into a repo you do not own</td>
             <td>1 each, at most 3</td>

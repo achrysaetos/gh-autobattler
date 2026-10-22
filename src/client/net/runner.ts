@@ -7,7 +7,7 @@ import type { Connect, Transport } from './transport.ts';
 
 const MAX_STEPS_PER_FRAME = 30;
 const MAX_BEHIND_TICKS = 600;
-const SYNC_BUDGET_MS = 12;
+const SYNC_SLICE_MS = 30;
 const CHECKSUM_HISTORY = 128;
 const FX_TAIL_STEPS = 3;
 
@@ -54,22 +54,10 @@ export class LockstepRunner {
 
   frame(): void {
     const world = this.store.world;
-    const phase = this.store.conn.phase;
-    if (!world || (phase !== 'live' && phase !== 'syncing')) return;
+    if (!world || this.store.conn.phase !== 'live') return;
     const exact = (Date.now() + this.offset - this.roundStartMs) / this.tickMs;
     const target = Math.floor(exact);
     const behind = target - world.tick;
-
-    if (phase === 'syncing') {
-      const started = performance.now();
-      while (world.tick < target && performance.now() - started < SYNC_BUDGET_MS) this.advance(world, false);
-      if (world.tick >= target) {
-        this.capturePrevious(world);
-        this.dispatch({ type: 'caught-up' });
-      }
-      this.alpha = 1;
-      return;
-    }
 
     if (behind > MAX_BEHIND_TICKS) {
       this.requestResync('behind');
@@ -83,6 +71,23 @@ export class LockstepRunner {
     }
     this.alpha = world.tick >= target ? Math.min(1, Math.max(0, exact - target)) : 1;
   }
+
+  private syncSlice = (): void => {
+    const world = this.store.world;
+    if (!world || this.store.conn.phase !== 'syncing') return;
+    const target = Math.floor((Date.now() + this.offset - this.roundStartMs) / this.tickMs);
+    const started = performance.now();
+    while (world.tick < target && performance.now() - started < SYNC_SLICE_MS) {
+      this.advance(world, false);
+      if (this.store.conn.phase !== 'syncing') return;
+    }
+    if (world.tick >= target) {
+      this.capturePrevious(world);
+      this.dispatch({ type: 'caught-up' });
+    } else {
+      setTimeout(this.syncSlice, 0);
+    }
+  };
 
   private advance(world: World, emit: boolean): void {
     const due = this.queue.get(world.tick);
@@ -193,6 +198,7 @@ export class LockstepRunner {
         store.resetDerived();
         this.dispatch({ type: 'hello' });
         store.publish();
+        setTimeout(this.syncSlice, 0);
         return;
       }
       case 'inputs': {

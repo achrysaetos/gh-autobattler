@@ -84,11 +84,11 @@ export class UnitLayer {
 
       if (x < view.minX || x > view.maxX || y < view.minY || y > view.maxY) continue;
       if (selectedPlayerId !== null && u.playerId === selectedPlayerId) {
-        overlay.circle(x, y, WORLD_SIZE[u.kind] * 0.75);
+        overlay.circle(x, y, WORLD_SIZE[u.kind] * 0.62);
         selected++;
       }
     }
-    if (selected) overlay.stroke({ width: 1.4, color: GOLD, alpha: 0.95 });
+    if (selected) overlay.stroke({ width: 1.1, color: GOLD, alpha: 0.9 });
 
     if (showHealth) {
       for (const u of world.units) {

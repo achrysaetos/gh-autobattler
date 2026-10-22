@@ -214,6 +214,12 @@ button {
   flex-direction: column;
   gap: 10px;
   width: 316px;
+  max-height: calc(100vh - 2 * var(--gutter) - 40px);
+}
+
+.command .dispatches {
+  min-height: 0;
+  flex: 0 1 auto;
 }
 
 .brand {
@@ -251,6 +257,11 @@ button {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.command-row .btn {
+  padding: 0 11px;
+  gap: 6px;
 }
 
 .conn {
@@ -315,17 +326,6 @@ button {
   to {
     opacity: 0.25;
   }
-}
-
-.left-col {
-  position: absolute;
-  top: calc(var(--gutter) + 92px);
-  left: var(--gutter);
-  width: 316px;
-}
-
-.left-col .dispatches {
-  max-height: calc(100vh - 160px);
 }
 
 /* scoreboard */
@@ -534,7 +534,6 @@ button {
 .dispatches {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 150px);
   min-height: 0;
   padding: 12px 0 6px;
 }
@@ -1594,8 +1593,7 @@ kbd {
   .scoreboard {
     width: calc(100vw - 2 * (300px + 2 * var(--gutter)));
   }
-  .command,
-  .left-col {
+  .command {
     width: 280px;
   }
   .side {
