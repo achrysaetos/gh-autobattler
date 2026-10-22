@@ -29,7 +29,7 @@ export function updateUnits(world: World, s: Scratch, ev: TickEvents): void {
   const d = derived(map);
   const hash = s.hash;
   s.damage.fill(0, 0, units.length);
-  s.killer.fill(NEUTRAL, 0, units.length);
+  s.killer.fill(-1, 0, units.length);
 
   for (let i = 0; i < units.length; i++) {
     const u = units[i]!;
@@ -67,7 +67,7 @@ export function updateUnits(world: World, s: Scratch, ev: TickEvents): void {
         const cell = cellAt(map, v.x, v.y);
         const inForest = cell >= 0 && map.terrain[cell] === Terrain.Forest;
         s.damage[t]! += hitDamage(u.kind, player ? player.rank : 0, v.kind, inForest);
-        s.killer[t] = u.playerId;
+        s.killer[t] = p;
         u.cooldown = stats.cooldown;
         ev.attacks.push({ from: u.id, to: v.id, ranged: stats.ranged });
       }
