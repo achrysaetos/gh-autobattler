@@ -157,6 +157,12 @@ class MockServer {
     };
   };
 
+  dropConnections(): void {
+    const dropped = [...this.clients];
+    this.clients.clear();
+    for (const c of dropped) c.onClose();
+  }
+
   standings(): StandingsResponse {
     const lifetime = this.players
       .map((p) => ({ playerId: p.meta.playerId, login: p.meta.login, avatarUrl: p.meta.avatarUrl, stats: this.liveStats(p) }))

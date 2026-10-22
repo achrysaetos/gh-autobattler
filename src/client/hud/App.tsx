@@ -21,7 +21,7 @@ function ConnectionPill() {
   return (
     <span className="conn" data-phase={hud.conn.phase} title={`Lockstep connection: ${hud.conn.phase}`}>
       <span className="conn-dot" />
-      {PHASE_LABEL[hud.conn.phase]}
+      <span className="conn-label">{PHASE_LABEL[hud.conn.phase]}</span>
     </span>
   );
 }
@@ -55,7 +55,7 @@ function CommandBar({ onDialog, mock, withFeed }: { onDialog(d: Dialog): void; m
         )}
         <button className="btn" onClick={() => onDialog({ kind: 'rules' })}>
           <span>
-            <span className="label-wide">Articles of </span>War
+            Articles<span className="label-wide"> of War</span>
           </span>
         </button>
         <button className="icon-btn" onClick={() => onDialog({ kind: 'standings' })} aria-label="Standings" title="Standings">

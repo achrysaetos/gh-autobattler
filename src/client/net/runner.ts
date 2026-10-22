@@ -150,7 +150,8 @@ export class LockstepRunner {
   }
 
   private requestResync(reason: ResyncReason): void {
-    if (this.store.conn.phase !== 'live') return;
+    const phase = this.store.conn.phase;
+    if (phase !== 'live' && phase !== 'syncing') return;
     this.dispatch({ type: 'resync', reason });
     this.transport?.send({ type: 'resync' });
   }

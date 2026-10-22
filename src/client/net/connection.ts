@@ -27,7 +27,7 @@ export function transition(state: ConnState, event: ConnEvent): ConnState {
     case 'caught-up':
       return state.phase === 'syncing' ? { phase: 'live' } : state;
     case 'resync':
-      return state.phase === 'live' ? { phase: 'resyncing', reason: event.reason } : state;
+      return state.phase === 'live' || state.phase === 'syncing' ? { phase: 'resyncing', reason: event.reason } : state;
     case 'closed': {
       if (state.phase === 'offline') return state;
       const attempt = state.phase === 'connecting' ? state.attempt + 1 : 1;
