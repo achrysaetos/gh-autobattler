@@ -55,7 +55,7 @@ export function createFakeSim(options: FakeSimOptions = {}): FakeSim {
       if (input.kind === 'enlist') {
         world.players.push({
           playerId: input.playerId, faction: input.faction, target: [0, 0, 0], rank: 0, respawnAt: [0, 0, 0],
-          orderObjectiveId: 0, kills: 0, losses: 0, captures: 0,
+          orderObjectiveId: 0, kills: 0, losses: 0, captures: 0, retreating: false,
         });
       } else {
         const pl = world.players.find((x) => x.playerId === input.playerId);
