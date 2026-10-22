@@ -1,7 +1,7 @@
 import { NEUTRAL, type PlayerState, type TickEvents, type World } from '../sim/api.ts';
 import type { FactionMeta, FeedItem, PlayerMeta, RoundMeta } from '../protocol.ts';
 import { INITIAL_CONN, type ConnState } from './net/connection.ts';
-import { objectiveName } from './names.ts';
+import { objectiveName } from '../rules/names.ts';
 
 export type Trend = -1 | 0 | 1;
 

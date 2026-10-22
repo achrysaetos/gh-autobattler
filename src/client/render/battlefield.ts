@@ -2,7 +2,7 @@ import { Application, Container, Graphics, RenderTexture, Sprite, Text, Texture,
 import { NEUTRAL, type MapDef, type World } from '../../sim/api.ts';
 import type { LockstepRunner } from '../net/runner.ts';
 import type { Store } from '../store.ts';
-import { objectiveName } from '../names.ts';
+import { objectiveName } from '../../rules/names.ts';
 import { Camera } from './camera.ts';
 import { FxLayer } from './fx.ts';
 import { ObjectiveLayer } from './objectives.ts';

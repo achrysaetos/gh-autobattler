@@ -2,7 +2,7 @@ import { NEUTRAL, TICK_MS, type SimInput, type TimedInput, type World } from '..
 import type { Army, DayLedger, Fielded, IsoDay, LifetimeStats, Medal } from '../../rules/types.ts';
 import type { FactionMeta, FeedItem, PlayerMeta, ProfileResponse, RoundMeta, ServerMessage, StandingsResponse } from '../../protocol.ts';
 import { sim } from '../simModule.ts';
-import { objectiveName } from '../names.ts';
+import { objectiveName } from '../../rules/names.ts';
 import type { Connect, TransportHandlers } from '../net/transport.ts';
 
 export interface MockOptions {

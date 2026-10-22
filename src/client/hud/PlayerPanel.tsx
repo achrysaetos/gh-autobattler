@@ -1,6 +1,6 @@
 import { UnitKind, UNIT_KINDS } from '../../sim/api.ts';
 import type { DayLedger } from '../../rules/types.ts';
-import { rankTitle } from '../names.ts';
+import { rankTitle } from '../../rules/names.ts';
 import { css, useEnv, useHud } from './context.ts';
 import { UnitIcon } from './icons.tsx';
 

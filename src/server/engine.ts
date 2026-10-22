@@ -9,6 +9,7 @@ import { NEUTRAL, TICK_MS, type RoundParams, type SimInput, type SimModule, type
 import type { Armory } from './armory.ts';
 import type { Muster, NewFeed, RoundFactionRow, RoundRow, Store } from './db.ts';
 import { errorMessage, type Logger } from './log.ts';
+import { objectiveName } from '../rules/names.ts';
 
 export const INPUT_LEAD_TICKS = 10;
 export const CHECK_EVERY_TICKS = 50;
@@ -392,7 +393,7 @@ export class Engine {
     for (const c of events.captures) {
       if (c.faction === NEUTRAL) continue;
       const objective = p.world.map.objectives.find((o) => o.id === c.objectiveId);
-      const label = objective?.kind === 'citadel' ? 'the Citadel' : `stronghold ${c.objectiveId}`;
+      const label = objective ? objectiveName(objective) : `objective ${c.objectiveId}`;
       this.feed({ at, kind: 'capture', playerId: c.playerIds[0] ?? null, faction: c.faction, message: `${factionName(c.faction)} took ${label}.`, url: null, units: null });
     }
     const dominator = p.world.dominationFaction;
