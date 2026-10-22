@@ -27,3 +27,7 @@ export function campaignName(campaign: number, seed: number): string {
   const place = pick(rng, HEADS) + pick(rng, TAILS);
   return `Campaign ${roman(campaign)} · ${engagement} ${place}`;
 }
+
+export function roomName(logins: readonly string[]): string {
+  return logins.map((l) => `@${l}`).join(' vs ');
+}
