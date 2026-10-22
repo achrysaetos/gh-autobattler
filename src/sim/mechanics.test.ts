@@ -115,6 +115,55 @@ describe('muster and respawn', () => {
   });
 });
 
+describe('player ids', () => {
+  it('players with negative ids, including -1, field armies and receive council orders', () => {
+    const { world } = battleWorld(13, [[{ infantry: 1, archers: 0, cavalry: 0 }], [{ infantry: 1, archers: 0, cavalry: 0 }]]);
+    const neutrals = world.units.filter((u) => u.faction === NEUTRAL).length;
+    expect(neutrals).toBeGreaterThan(0);
+    step(world, [
+      { kind: 'enlist', playerId: NEUTRAL, faction: 0 },
+      { kind: 'muster', playerId: NEUTRAL, infantry: 12, archers: 6, cavalry: 6, rank: 0 },
+      { kind: 'enlist', playerId: -7, faction: 1 },
+      { kind: 'muster', playerId: -7, infantry: 12, archers: 6, cavalry: 6, rank: 0 },
+    ]);
+    const owned = (f: number) => world.units.filter((u) => u.faction === f).length;
+    expect(owned(0)).toBe(24);
+    expect(owned(1)).toBe(24);
+    run(world, 60);
+    for (const p of world.players) {
+      const base = world.map.objectives.find((o) => o.kind === 'base' && o.homeFaction === p.faction)!;
+      expect(p.orderObjectiveId, `player ${p.playerId} has a field order`).not.toBe(base.id);
+    }
+  });
+
+  it('kills by neutral garrisons are never credited to player -1', () => {
+    const world = arenaWorld(5, 1);
+    step(world, [
+      { kind: 'enlist', playerId: NEUTRAL, faction: 0 },
+      { kind: 'muster', playerId: NEUTRAL, infantry: 1, archers: 0, cavalry: 0, rank: 0 },
+    ]);
+    const stronghold = world.map.objectives.find((o) => o.kind === 'stronghold')!;
+    const victim = world.units[0]!;
+    victim.x = stronghold.x;
+    victim.y = stronghold.y;
+    victim.hp = 1;
+    world.units.push({ ...victim, id: world.nextUnitId++, playerId: NEUTRAL, faction: NEUTRAL, kind: UnitKind.Archer, x: stronghold.x + 20, hp: 70, maxHp: 70 });
+    let deaths = 0;
+    for (let t = 0; t < 50 && deaths === 0; t++) deaths += step(world, []).deaths.filter((d) => d.unitId === victim.id).length;
+    expect(deaths).toBe(1);
+    expect(world.players[0]!.kills).toBe(0);
+    expect(world.players[0]!.losses).toBe(1);
+  });
+
+  it('a player left short with no respawn timer is refilled within 21 seconds', () => {
+    const world = soloPlayer(6);
+    world.units = world.units.slice(0, 2);
+    expect(world.players[0]!.respawnAt).toEqual([-1, -1, -1]);
+    run(world, 211);
+    expect(aliveOf(world, 1)).toBe(6);
+  });
+});
+
 describe('objectives', () => {
   it('a lone faction standing on a stronghold flips it and emits a capture event naming the players', () => {
     const world = arenaWorld(5, 2);

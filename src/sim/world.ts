@@ -1,5 +1,6 @@
 import {
   NEUTRAL,
+  TICKS_PER_SECOND,
   UNIT_KINDS,
   UnitKind,
   type MapDef,
@@ -14,7 +15,7 @@ import { updateCaptures, updateDomination } from './capture.ts';
 import { baseOf, runCouncil } from './council.ts';
 import { derived } from './derived.ts';
 import { nextRandom, seedRng } from './rng.ts';
-import { indexUnits, scratchFor, type Scratch } from './scratch.ts';
+import { indexUnits, ownerIndex, scratchFor, type Scratch } from './scratch.ts';
 import { COUNCIL_PERIOD, MAX_ALIVE, RESPAWN_TICKS, STATS, rankFactor } from './stats.ts';
 import { passableAt } from './steering.ts';
 import { scoreSecond, updateTerritory } from './territory.ts';
@@ -109,7 +110,7 @@ function applyInput(world: World, s: Scratch, input: SimInput, ev: TickEvents): 
   player.target = [Math.max(0, input.infantry), Math.max(0, input.archers), Math.max(0, input.cavalry)];
   player.rank = Math.max(0, input.rank);
   const alive = [0, 0, 0];
-  for (const u of world.units) if (u.playerId === player.playerId) alive[u.kind]!++;
+  for (const u of world.units) if (ownerIndex(s, u) === p) alive[u.kind]!++;
   for (const kind of UNIT_KINDS) {
     reinforce(world, player, kind, player.target[kind] - alive[kind]!, ev);
   }
@@ -178,10 +179,10 @@ function resolveDeaths(world: World, s: Scratch, ev: TickEvents): void {
       units[w++] = u;
       continue;
     }
-    const killerPlayerId = s.killer[i]!;
+    const killer = s.killer[i]!;
+    const killerPlayerId = killer >= 0 ? players[killer]!.playerId : NEUTRAL;
     ev.deaths.push({ unitId: u.id, x: u.x, y: u.y, faction: u.faction, kind: u.kind, playerId: u.playerId, killerPlayerId });
-    const killer = s.playerIndex.get(killerPlayerId);
-    if (killer !== undefined) players[killer]!.kills++;
+    if (killer >= 0) players[killer]!.kills++;
     const p = s.unitPlayer[i]!;
     if (p >= 0) {
       const victim = players[p]!;
@@ -192,21 +193,30 @@ function resolveDeaths(world: World, s: Scratch, ev: TickEvents): void {
   units.length = w;
 }
 
+// Deaths arm the respawn timer; the once-a-second audit also arms it for any
+// player left short without one, so every path converges on the target army.
 function respawn(world: World, s: Scratch, ev: TickEvents): void {
   const { players, units, tick } = world;
+  const audit = tick % TICKS_PER_SECOND === 0;
   const isDue = (p: PlayerState) => p.respawnAt.some((at) => at >= 0 && at <= tick);
-  if (!players.some(isDue)) return;
+  if (!audit && !players.some(isDue)) return;
   const alive = new Int32Array(players.length * 3);
   for (const u of units) {
-    const p = u.playerId < 0 ? undefined : s.playerIndex.get(u.playerId);
-    if (p !== undefined) alive[p * 3 + u.kind]!++;
+    const p = ownerIndex(s, u);
+    if (p >= 0) alive[p * 3 + u.kind]!++;
   }
   for (let p = 0; p < players.length; p++) {
     const player = players[p]!;
     for (const kind of UNIT_KINDS) {
+      const missing = player.target[kind] - alive[p * 3 + kind]!;
       const at = player.respawnAt[kind];
-      if (at < 0 || at > tick) continue;
-      reinforce(world, player, kind, player.target[kind] - alive[p * 3 + kind]!, ev);
+      if (missing <= 0) {
+        if (at >= 0 && at <= tick) player.respawnAt[kind] = -1;
+      } else if (at < 0) {
+        if (audit) player.respawnAt[kind] = tick + RESPAWN_TICKS;
+      } else if (at <= tick) {
+        reinforce(world, player, kind, missing, ev);
+      }
     }
   }
 }

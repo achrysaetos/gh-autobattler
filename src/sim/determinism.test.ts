@@ -60,7 +60,7 @@ describe('determinism', () => {
 });
 
 const ALLOWED_MATH = new Set(['sqrt', 'floor', 'abs', 'min', 'max', 'imul']);
-const FORBIDDEN = [/\bDate\b/, /\bperformance\b/, /\*\*/, /\bcrypto\b/, /\bfor\s*\([^)]*\bin\b/, /\.(keys|values|entries)\(\)/, /\bnew Set\b/, /\.forEach\(/];
+const FORBIDDEN = [/\bDate\b/, /\bperformance\b/, /\*\*/, /\bcrypto\b/, /\bfor\s*\([^)]*\bin\b/, /\.(keys|values|entries)\(\)/, /\bnew Set\b/, /\.forEach\(/, /playerId\s*[<>]/];
 const EXEMPT = new Set(['mapgen.ts', 'demo.ts']);
 
 function scan(file: string, source: string): string[] {
@@ -77,7 +77,7 @@ function scan(file: string, source: string): string[] {
 
 describe('forbidden-Math scan', () => {
   it('flags every forbidden construct in a sample', () => {
-    const bad = ['Math.sin(a)', 'Math.random()', 'Math.round(x)', 'Date.now()', 'x ** 2', 'for (const k in o) {}', 'm.values()'];
+    const bad = ['Math.sin(a)', 'Math.random()', 'Math.round(x)', 'Date.now()', 'x ** 2', 'for (const k in o) {}', 'm.values()', 'u.playerId < 0'];
     expect(scan('bad.ts', bad.join('\n'))).toHaveLength(bad.length);
     expect(scan('ok.ts', 'Math.sqrt(Math.floor(Math.abs(Math.min(1, Math.max(2, Math.imul(3, 4))))))')).toEqual([]);
   });

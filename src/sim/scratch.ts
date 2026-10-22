@@ -1,4 +1,4 @@
-import type { World } from './api.ts';
+import { NEUTRAL, type Unit, type World } from './api.ts';
 import { createSpatialHash, rebuildSpatialHash, type SpatialHash } from './spatial.ts';
 import { MAX_ALIVE } from './stats.ts';
 
@@ -12,7 +12,8 @@ export interface Scratch {
   nx: Float64Array;
   ny: Float64Array;
   damage: Float64Array;
-  killer: Float64Array;
+  // Player index of the last unit to hit each unit this tick, -1 for none or neutral.
+  killer: Int32Array;
 }
 
 const cache = new WeakMap<World, Scratch>();
@@ -29,7 +30,7 @@ export function scratchFor(world: World): Scratch {
       nx: new Float64Array(cap),
       ny: new Float64Array(cap),
       damage: new Float64Array(cap),
-      killer: new Float64Array(cap),
+      killer: new Int32Array(cap),
     };
     cache.set(world, s);
   }
@@ -46,7 +47,13 @@ export function indexUnits(world: World, s: Scratch): void {
   for (let i = 0; i < units.length; i++) {
     const u = units[i]!;
     s.idToIndex.set(u.id, i);
-    s.unitPlayer[i] = u.playerId < 0 ? -1 : (s.playerIndex.get(u.playerId) ?? -1);
+    s.unitPlayer[i] = ownerIndex(s, u);
   }
   rebuildSpatialHash(s.hash, units);
+}
+
+// Faction, not player id, marks a garrison: live player ids can be negative and
+// can even equal NEUTRAL.
+export function ownerIndex(s: Scratch, u: Unit): number {
+  return u.faction === NEUTRAL ? -1 : (s.playerIndex.get(u.playerId) ?? -1);
 }
