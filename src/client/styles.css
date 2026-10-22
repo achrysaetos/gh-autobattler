@@ -204,7 +204,6 @@ button {
   border-color: var(--line-strong);
 }
 
-/* top-left command bar */
 
 .command {
   position: absolute;
@@ -328,7 +327,6 @@ button {
   }
 }
 
-/* scoreboard */
 
 .scoreboard {
   position: absolute;
@@ -474,7 +472,6 @@ button {
   font-size: 11px;
 }
 
-/* toasts */
 
 .toasts {
   position: absolute;
@@ -529,7 +526,6 @@ button {
   }
 }
 
-/* dispatches */
 
 .dispatches {
   display: flex;
@@ -638,7 +634,6 @@ button {
   flex: none;
 }
 
-/* player panel */
 
 .side {
   position: absolute;
@@ -954,7 +949,6 @@ button {
   letter-spacing: 0.06em;
 }
 
-/* minimap + controls */
 
 .minimap {
   position: absolute;
@@ -1037,7 +1031,6 @@ kbd {
   color: var(--bone);
 }
 
-/* modal */
 
 .modal-backdrop {
   position: absolute;
@@ -1309,7 +1302,6 @@ kbd {
   letter-spacing: 0.1em;
 }
 
-/* overlays */
 
 .splash {
   position: absolute;
@@ -1529,7 +1521,6 @@ kbd {
   font-size: 12px;
 }
 
-/* mobile */
 
 .sheet {
   position: absolute;

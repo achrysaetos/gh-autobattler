@@ -1,4 +1,4 @@
-import { UnitKind, type ObjectiveDef } from '../sim/api.ts';
+import type { ObjectiveDef } from '../sim/api.ts';
 
 const STRONGHOLD_NAMES = [
   'Ashford Keep',
@@ -25,14 +25,9 @@ export function objectiveName(def: ObjectiveDef, factionName?: string): string {
   return STRONGHOLD_NAMES[def.id % STRONGHOLD_NAMES.length]!;
 }
 
-export const RANK_TITLES = ['Recruit', 'Corporal', 'Sergeant', 'Captain', 'Marshal'] as const;
+const RANK_TITLES = ['Recruit', 'Corporal', 'Sergeant', 'Captain', 'Marshal'] as const;
 
 export function rankTitle(rank: number): string {
   return RANK_TITLES[Math.max(0, Math.min(4, rank))]!;
 }
 
-export const KIND_LABEL: Record<UnitKind, { one: string; many: string }> = {
-  [UnitKind.Infantry]: { one: 'infantry', many: 'infantry' },
-  [UnitKind.Archer]: { one: 'archer', many: 'archers' },
-  [UnitKind.Cavalry]: { one: 'cavalry', many: 'cavalry' },
-};
