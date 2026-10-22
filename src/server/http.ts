@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { WebSocket } from 'ws';
 import { z } from 'zod';
-import { WS_CLOSE_ROOM_MISSING, WS_CLOSE_ROOM_UNKNOWN, type PlayerMeta, type ProfileResponse, type RoomsResponse, type ServerMessage, type StandingsResponse } from '../protocol.ts';
+import type { CreateRoomResponse, PlayerMeta, ProfileResponse, RoomsResponse, ServerMessage, StandingsResponse } from '../protocol.ts';
 import { medalsFor } from '../rules/medals.ts';
 import { registerAuth, type AuthDeps } from './auth.ts';
 import type { Channel } from './battle.ts';
@@ -22,6 +22,8 @@ export interface MeResponse {
 const ClientMessageSchema = z.object({ type: z.literal('resync') });
 const PlayerParams = z.object({ id: z.coerce.number().int() });
 const WsQuery = z.object({ room: z.string().optional() });
+const WS_CLOSE_ROOM_MISSING = 4400;
+const WS_CLOSE_ROOM_NOT_FOUND = 4404;
 
 export type ChannelKey = 'campaign' | `room:${string}`;
 
@@ -99,7 +101,7 @@ export async function buildHttp(
     const query = WsQuery.safeParse(req.query);
     const room = query.success ? query.data.room : '';
     if (room === '') return socket.close(WS_CLOSE_ROOM_MISSING, 'room slug missing');
-    if (room !== undefined && !(SLUG_PATTERN.test(room) && rooms.has(room))) return socket.close(WS_CLOSE_ROOM_UNKNOWN, 'room not found');
+    if (room !== undefined && !(SLUG_PATTERN.test(room) && rooms.has(room))) return socket.close(WS_CLOSE_ROOM_NOT_FOUND, 'room not found');
     const key: ChannelKey = room === undefined ? 'campaign' : `room:${room}`;
     hub.add(key, socket, viewerOf(req));
     socket.on('message', (raw: Buffer) => {
@@ -136,7 +138,16 @@ export async function buildHttp(
     return profile;
   });
 
-  app.post('/api/rooms', async (req, reply) => {
+  app.post('/api/rooms', {
+    errorHandler: (err, _req, reply) => {
+      const clientError = err.statusCode !== undefined && err.statusCode >= 400 && err.statusCode < 500;
+      if (!clientError) deps.log.error('room creation failed', { error: err.message });
+      const body: CreateRoomResponse = clientError
+        ? { ok: false, error: 'invalid_request', message: err.message }
+        : { ok: false, error: 'github_unavailable', message: 'room creation failed, try again shortly' };
+      return reply.code(clientError ? 400 : 503).send(body);
+    },
+  }, async (req, reply) => {
     const outcome = await recruiter.create(req.body, req.ip);
     return reply.code(outcome.status).send(outcome.body);
   });

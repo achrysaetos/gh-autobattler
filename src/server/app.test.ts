@@ -83,6 +83,15 @@ describe('rooms over HTTP and WebSocket', () => {
     expect(full.json()).toMatchObject({ ok: false, error: 'rooms_full' });
   });
 
+  it('answers a CreateRoomResponse body even when the request body cannot be parsed', async () => {
+    const s = await boot({ GITHUB_TOKEN: 'srv' });
+    for (const [type, payload] of [['application/json', '{"logins": ['], ['text/plain', 'alice,bob']] as const) {
+      const res = await s.app.inject({ method: 'POST', url: '/api/rooms', headers: { 'content-type': type }, payload });
+      expect(res.statusCode, type).toBe(400);
+      expect(res.json(), type).toMatchObject({ ok: false, error: 'invalid_request' });
+    }
+  });
+
   it('answers github_unavailable without a server token', async () => {
     const s = await boot({});
     const res = await s.app.inject({ method: 'POST', url: '/api/rooms', payload: { logins: ['alice', 'bob'] } });

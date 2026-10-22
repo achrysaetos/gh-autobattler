@@ -78,8 +78,6 @@ export interface StandingsResponse {
 }
 
 export const ROOM_MIN_FIGHTERS = 2;
-export const WS_CLOSE_ROOM_MISSING = 4400;
-export const WS_CLOSE_ROOM_UNKNOWN = 4404;
 export const ROOM_MAX_FIGHTERS = 8;
 
 export interface CreateRoomRequest {
