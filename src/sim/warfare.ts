@@ -1,5 +1,6 @@
 import { NEUTRAL, type SimInput } from './api.ts';
 import { createWorld, generateMap, step } from './index.ts';
+import { DOMINATION_TICKS } from './stats.ts';
 
 export interface WarfareCase {
   name: string;
@@ -43,7 +44,7 @@ export function warfareInputs(c: WarfareCase): SimInput[] {
 
 export function runWarfare(c: WarfareCase, seed: number, minutes = 20): WarfareResult {
   const expectedUnits = c.unitsPerPlayerByFaction.flat().reduce((a, b) => a + b, 0);
-  const params = { seed, factionCount: c.unitsPerPlayerByFaction.length, expectedUnits };
+  const params = { seed, factionCount: c.unitsPerPlayerByFaction.length, expectedUnits, dominationTicks: DOMINATION_TICKS };
   const map = generateMap(params);
   const world = createWorld(params, map);
   const inputs = warfareInputs(c);

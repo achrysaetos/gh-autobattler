@@ -5,7 +5,7 @@ import { isoDay } from '../rules/days.ts';
 import { factionCount, formFactions, weakestFaction } from '../rules/factions.ts';
 import { fieldArmies } from '../rules/fielding.ts';
 import { campaignName } from '../rules/naming.ts';
-import { NEUTRAL, TICK_MS, type RoundParams, type SimInput, type SimModule, type TickEvents, type TimedInput, type World, type WorldSnapshot } from '../sim/api.ts';
+import { NEUTRAL, TICK_MS, TICKS_PER_SECOND, type RoundParams, type SimInput, type SimModule, type TickEvents, type TimedInput, type World, type WorldSnapshot } from '../sim/api.ts';
 import type { Armory } from './armory.ts';
 import type { Muster, NewFeed, RoundFactionRow, RoundRow, Store } from './db.ts';
 import { errorMessage, type Logger } from './log.ts';
@@ -17,6 +17,7 @@ export const SNAPSHOT_EVERY_TICKS = 600;
 export const MAX_STEPS_PER_LOOP = 50;
 export const MIN_EXPECTED_UNITS = 60;
 const RECONCILE_MS = 2000;
+const CAMPAIGN_DOMINATION_TICKS = 6 * 60 * 60 * TICKS_PER_SECOND;
 
 export interface EngineConfig {
   roundMs: number;
@@ -425,7 +426,7 @@ function endTick(round: RoundRow): number {
 }
 
 function roundParams(round: RoundRow): RoundParams {
-  return { seed: round.seed, factionCount: round.factionCount, expectedUnits: round.expectedUnits };
+  return { seed: round.seed, factionCount: round.factionCount, expectedUnits: round.expectedUnits, dominationTicks: CAMPAIGN_DOMINATION_TICKS };
 }
 
 function leader(world: World): number | null {
@@ -441,6 +442,7 @@ function combatStats(world: World) {
 export function roundMeta(r: RoundRow): RoundMeta {
   return {
     id: r.id,
+    roomSlug: null,
     name: r.name,
     status: r.status,
     startsAt: r.startsAt,

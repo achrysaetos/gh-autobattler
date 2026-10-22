@@ -20,6 +20,7 @@ export interface RoundParams {
   seed: number;
   factionCount: number;
   expectedUnits: number;
+  dominationTicks: number;
 }
 
 export type ObjectiveKind = 'base' | 'stronghold' | 'citadel';

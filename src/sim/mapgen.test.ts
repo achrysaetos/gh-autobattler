@@ -27,20 +27,20 @@ describe('mapgen', () => {
   it('sizes the disc at 1100 square units per expected unit with a 700 floor', () => {
     expect(mapRadius(10)).toBe(700);
     expect(mapRadius(2400)).toBeCloseTo(Math.sqrt((2400 * 1100) / Math.PI), 6);
-    expect(generateMap({ seed: 1, factionCount: 8, expectedUnits: 2400 }).radius).toBeCloseTo(916.7, 1);
+    expect(generateMap({ seed: 1, factionCount: 8, expectedUnits: 2400, dominationTicks: 216000 }).radius).toBeCloseTo(916.7, 1);
   });
 
   it('is seed-deterministic', () => {
-    const a = generateMap({ seed: 99, factionCount: 5, expectedUnits: 900 });
-    const b = generateMap({ seed: 99, factionCount: 5, expectedUnits: 900 });
-    const c = generateMap({ seed: 100, factionCount: 5, expectedUnits: 900 });
+    const a = generateMap({ seed: 99, factionCount: 5, expectedUnits: 900, dominationTicks: 216000 });
+    const b = generateMap({ seed: 99, factionCount: 5, expectedUnits: 900, dominationTicks: 216000 });
+    const c = generateMap({ seed: 100, factionCount: 5, expectedUnits: 900, dominationTicks: 216000 });
     expect(a).toEqual(b);
     expect(a.terrain).not.toEqual(c.terrain);
   });
 
   for (const f of FACTIONS) {
     it(`F=${f}: symmetric objectives and terrain, every objective reachable from every base`, () => {
-      const map = generateMap({ seed: 1234 + f, factionCount: f, expectedUnits: 120 * f });
+      const map = generateMap({ seed: 1234 + f, factionCount: f, expectedUnits: 120 * f, dominationTicks: 216000 });
       const kinds = map.objectives.map((o) => o.kind);
       expect(kinds.filter((k) => k === 'base')).toHaveLength(f);
       expect(kinds.filter((k) => k === 'stronghold')).toHaveLength(2 * f);
@@ -83,7 +83,7 @@ describe('mapgen', () => {
   it('paints forests and impassable terrain from noise', () => {
     const counts = [0, 0, 0, 0];
     for (const f of FACTIONS) {
-      const map = generateMap({ seed: 77 + f, factionCount: f, expectedUnits: 300 * f });
+      const map = generateMap({ seed: 77 + f, factionCount: f, expectedUnits: 300 * f, dominationTicks: 216000 });
       for (const t of map.terrain) if (t !== Terrain.Void) counts[t]!++;
     }
     const total = counts.reduce((a, b) => a + b, 0);
@@ -93,8 +93,8 @@ describe('mapgen', () => {
   });
 
   it('scales garrisons with the expected army', () => {
-    const small = generateMap({ seed: 1, factionCount: 4, expectedUnits: 200 });
-    const large = generateMap({ seed: 1, factionCount: 4, expectedUnits: 2000 });
+    const small = generateMap({ seed: 1, factionCount: 4, expectedUnits: 200, dominationTicks: 216000 });
+    const large = generateMap({ seed: 1, factionCount: 4, expectedUnits: 2000, dominationTicks: 216000 });
     const citadel = (m: MapDef) => m.objectives.find((o) => o.kind === 'citadel')!.garrison;
     expect(citadel(large)).toBeGreaterThan(citadel(small) * 5);
   });

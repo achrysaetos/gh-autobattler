@@ -1,5 +1,6 @@
 import { NEUTRAL, Terrain, type SimInput, type UnitKind, type World } from './api.ts';
 import { createWorld, generateMap, step } from './index.ts';
+import { DOMINATION_TICKS } from './stats.ts';
 
 export interface Army {
   infantry: number;
@@ -23,7 +24,7 @@ export function enlistAll(armies: readonly Army[][]): SimInput[] {
 
 export function battleWorld(seed: number, armies: readonly Army[][]): { world: World; inputs: SimInput[] } {
   const expectedUnits = armies.flat().reduce((n, a) => n + a.infantry + a.archers + a.cavalry, 0);
-  const params = { seed, factionCount: armies.length, expectedUnits };
+  const params = { seed, factionCount: armies.length, expectedUnits, dominationTicks: DOMINATION_TICKS };
   return { world: createWorld(params, generateMap(params)), inputs: enlistAll(armies) };
 }
 
@@ -32,7 +33,7 @@ export function run(world: World, ticks: number, firstInputs: readonly SimInput[
 }
 
 export function arenaWorld(seed: number, factionCount: number): World {
-  const params = { seed, factionCount, expectedUnits: 40 };
+  const params = { seed, factionCount, expectedUnits: 40, dominationTicks: DOMINATION_TICKS };
   const map = generateMap(params);
   for (let i = 0; i < map.terrain.length; i++) if (map.terrain[i] !== Terrain.Void) map.terrain[i] = Terrain.Plain;
   const world = createWorld(params, map);

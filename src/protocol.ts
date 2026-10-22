@@ -11,6 +11,7 @@ export interface RoundMeta {
   endsAt: number;
   intermissionEndsAt: number | null;
   winnerFaction: number | null;
+  roomSlug: string | null;
 }
 
 export interface FactionMeta {
@@ -74,4 +75,42 @@ export interface ProfileResponse {
 
 export interface StandingsResponse {
   lifetime: { playerId: number; login: string; avatarUrl: string; stats: LifetimeStats }[];
+}
+
+export const ROOM_MIN_FIGHTERS = 2;
+export const ROOM_MAX_FIGHTERS = 8;
+
+export interface CreateRoomRequest {
+  logins: string[];
+}
+
+export type FighterRejection = 'not_found' | 'bot' | 'too_new' | 'no_public_activity' | 'duplicate';
+
+export type CreateRoomResponse =
+  | { ok: true; slug: string }
+  | { ok: false; error: 'invalid_request' | 'rate_limited' | 'rooms_full' | 'github_unavailable'; message: string }
+  | { ok: false; error: 'rejected_fighters'; rejected: { login: string; reason: FighterRejection }[] };
+
+export interface RoomFighter {
+  login: string;
+  avatarUrl: string;
+  faction: number;
+  color: number;
+  soldiers: number;
+  score: number;
+}
+
+export interface RoomSummary {
+  slug: string;
+  name: string;
+  status: RoundStatus;
+  startsAt: number;
+  endsAt: number;
+  winnerLogin: string | null;
+  fighters: RoomFighter[];
+}
+
+export interface RoomsResponse {
+  live: RoomSummary[];
+  recent: RoomSummary[];
 }

@@ -1,5 +1,6 @@
 import { NEUTRAL, TICKS_PER_SECOND, type SimInput } from './api.ts';
 import { checksum, createWorld, generateMap, step } from './index.ts';
+import { DOMINATION_TICKS } from './stats.ts';
 
 const armies = [
   { players: 10, infantry: 14, archers: 8, cavalry: 6 },
@@ -20,7 +21,7 @@ armies.forEach((a, faction) => {
   }
 });
 
-const params = { seed: Number(process.argv[2] ?? 42), factionCount: armies.length, expectedUnits };
+const params = { seed: Number(process.argv[2] ?? 42), factionCount: armies.length, expectedUnits, dominationTicks: DOMINATION_TICKS };
 const map = generateMap(params);
 const world = createWorld(params, map);
 console.log(`map radius ${map.radius.toFixed(0)}, ${map.hexes.length} hexes, ${map.objectives.length} objectives, ${world.units.length} garrison units`);

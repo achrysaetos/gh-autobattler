@@ -211,6 +211,7 @@ class MockServer {
     this.roundStartMs = now - PRESIM_TICKS * TICK_MS;
     this.round = {
       id: 12,
+      roomSlug: null,
       name: 'Round XII · The Ember March',
       status: this.opts.ended ? 'ended' : 'active',
       startsAt: monday,
@@ -219,7 +220,7 @@ class MockServer {
       winnerFaction: null,
     };
     const expectedUnits = Math.max(200, this.players.reduce((s, p) => s + p.meta.fielded.infantry + p.meta.fielded.archers + p.meta.fielded.cavalry, 0));
-    const params = { seed: 7331, factionCount: F, expectedUnits };
+    const params = { seed: 7331, factionCount: F, expectedUnits, dominationTicks: 216000 };
     this.world = sim.createWorld(params, sim.generateMap(params));
     for (const p of this.players) {
       this.scheduleInput(0, { kind: 'enlist', playerId: p.meta.playerId, faction: p.meta.faction });
