@@ -1,4 +1,5 @@
 import { css, useEnv, useHud, useNow } from './context.ts';
+import { fighterOf } from './Room.tsx';
 
 export function formatCountdown(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -7,6 +8,11 @@ export function formatCountdown(ms: number): string {
   const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
   const ss = String(s % 60).padStart(2, '0');
   return d > 0 ? `${d}d ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`;
+}
+
+export function formatMinutes(ms: number): string {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 function Tower({ gold }: { gold: boolean }) {
@@ -21,7 +27,7 @@ const TREND_GLYPH = { 1: '▲', 0: '–', [-1]: '▼' } as const;
 
 export function Scoreboard() {
   const hud = useHud();
-  const { store } = useEnv();
+  const { store, room } = useEnv();
   useNow(1000);
   const round = hud.round;
   if (!round) return null;
@@ -29,16 +35,30 @@ export function Scoreboard() {
   const ended = round.status === 'ended';
   const leader = [...hud.standings].sort((a, b) => b.score - a.score)[0];
   return (
-    <div className="scoreboard">
+    <div className="scoreboard" data-room={room !== null}>
       <div className="round-line">
         <span className="round-name">{round.name}</span>
-        <span className="round-clock-label">{ended ? 'Intermission' : 'Ends in'}</span>
-        <span className="round-clock">{formatCountdown((ended ? (round.intermissionEndsAt ?? now) : round.endsAt) - now)}</span>
+        {room ? (
+          <>
+            <span className="round-clock-label">{ended ? 'Final' : 'Time left'}</span>
+            {!ended && (
+              <span className="round-clock" data-urgent={round.endsAt - now < 60_000}>
+                {formatMinutes(round.endsAt - now)}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="round-clock-label">{ended ? 'Intermission' : 'Ends in'}</span>
+            <span className="round-clock">{formatCountdown((ended ? (round.intermissionEndsAt ?? now) : round.endsAt) - now)}</span>
+          </>
+        )}
       </div>
       {hud.standings.length > 0 && (
         <div className="banners">
           {hud.standings.map((f) => {
             const isLeader = leader?.id === f.id && f.score > 0;
+            const fighter = room ? fighterOf(hud, f.id) : undefined;
             return (
               <div
                 key={f.id}
@@ -49,7 +69,8 @@ export function Scoreboard() {
               >
                 {isLeader && <span className="crown" aria-label="Leading">♛</span>}
                 <div className="banner-head">
-                  <span className="banner-name">{f.name}</span>
+                  {fighter && <img className="banner-avatar" src={fighter.avatarUrl} alt="" width={22} height={22} />}
+                  <span className="banner-name">{fighter ? `@${fighter.login}` : f.name}</span>
                 </div>
                 <div className="banner-score">
                   <span className="mono">{Math.floor(f.score).toLocaleString()}</span>

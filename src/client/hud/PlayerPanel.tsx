@@ -44,7 +44,7 @@ function DayCell({ day, today, color }: { day: DayLedger; today: boolean; color:
 
 export function PlayerPanel({ className = '' }: { className?: string }) {
   const hud = useHud();
-  const { store, openProfile } = useEnv();
+  const { store, openProfile, room } = useEnv();
   const id = hud.selectedPlayerId;
   const player = id !== null ? hud.players.get(id) : undefined;
   if (!player) return null;
@@ -182,9 +182,15 @@ export function PlayerPanel({ className = '' }: { className?: string }) {
         <button className="btn" onClick={() => store.setFollowing(!hud.following)} aria-pressed={hud.following}>
           {hud.following ? 'Following warband' : 'Follow warband'}
         </button>
-        <button className="btn" onClick={() => openProfile(player.playerId)}>
-          Service record
-        </button>
+        {room ? (
+          <a className="btn" href={`https://github.com/${player.login}`} target="_blank" rel="noreferrer">
+            GitHub profile
+          </a>
+        ) : (
+          <button className="btn" onClick={() => openProfile(player.playerId)}>
+            Service record
+          </button>
+        )}
       </div>
     </section>
   );

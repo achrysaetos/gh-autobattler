@@ -20,7 +20,7 @@ interface MapScene {
   map: MapDef;
   art: TerrainArt;
   terrain: Sprite;
-  grain: TilingSprite;
+  grain: Container;
   territory: TerritoryLayer;
   objectives: ObjectiveLayer;
   names: { text: Text; x: number; y: number; major: boolean }[];
@@ -172,7 +172,7 @@ export class Battlefield {
     return this.scene;
   }
 
-  private grain(radius: number): TilingSprite {
+  private grain(radius: number): Container {
     const [c, ctx] = canvas2d(256, 256);
     const rand = seeded(91);
     for (let i = 0; i < 1400; i++) {
@@ -190,11 +190,11 @@ export class Battlefield {
     tiling.position.set(-radius, -radius);
     tiling.tileScale.set(0.25);
     const mask = new Graphics().circle(0, 0, radius - 2).fill(0xffffff);
-    tiling.addChild(mask);
-    mask.position.set(radius, radius);
-    tiling.mask = mask;
-    tiling.alpha = 0;
-    return tiling;
+    const holder = new Container();
+    holder.addChild(tiling, mask);
+    holder.mask = mask;
+    holder.alpha = 0;
+    return holder;
   }
 
   private bakeTerrain(map: MapDef, art: TerrainArt): Sprite {

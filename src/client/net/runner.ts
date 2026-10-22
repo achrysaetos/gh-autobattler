@@ -1,4 +1,4 @@
-import type { SimInput, TickEvents, TimedInput, World } from '../../sim/api.ts';
+import { NEUTRAL, type SimInput, type TickEvents, type TimedInput, type World } from '../../sim/api.ts';
 import type { ServerMessage } from '../../protocol.ts';
 import { sim } from '../simModule.ts';
 import type { Store } from '../store.ts';
@@ -23,6 +23,7 @@ export class LockstepRunner {
   private roundStartMs = 0;
   private tickMs = 100;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private stopped = false;
   private stepListeners = new Set<StepListener>();
   private prevIndex = new Map<number, number>();
   private prevXY = new Float64Array(0);
@@ -37,6 +38,14 @@ export class LockstepRunner {
 
   start(): void {
     this.open();
+  }
+
+  stop(): void {
+    this.stopped = true;
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.transport?.close();
+    this.transport = null;
   }
 
   onStep(fn: StepListener): () => void {
@@ -56,7 +65,7 @@ export class LockstepRunner {
     const world = this.store.world;
     if (!world || this.store.conn.phase !== 'live') return;
     const exact = (Date.now() + this.offset - this.roundStartMs) / this.tickMs;
-    const target = Math.floor(exact);
+    const target = Math.min(Math.floor(exact), this.lastTick(world));
     const behind = target - world.tick;
 
     if (behind > MAX_BEHIND_TICKS) {
@@ -75,7 +84,7 @@ export class LockstepRunner {
   private syncSlice = (): void => {
     const world = this.store.world;
     if (!world || this.store.conn.phase !== 'syncing') return;
-    const target = Math.floor((Date.now() + this.offset - this.roundStartMs) / this.tickMs);
+    const target = Math.min(Math.floor((Date.now() + this.offset - this.roundStartMs) / this.tickMs), this.lastTick(world));
     const started = performance.now();
     while (world.tick < target && performance.now() - started < SYNC_SLICE_MS) {
       this.advance(world, false);
@@ -88,6 +97,14 @@ export class LockstepRunner {
       setTimeout(this.syncSlice, 0);
     }
   };
+
+  // A room's battle freezes at its final tick, so every spectator holds the same final field.
+  private lastTick(world: World): number {
+    const round = this.store.round;
+    if (round?.roomSlug == null) return Infinity;
+    if (world.winner !== NEUTRAL) return world.tick;
+    return Math.floor((round.endsAt - this.roundStartMs) / this.tickMs);
+  }
 
   private advance(world: World, emit: boolean): void {
     const due = this.queue.get(world.tick);
@@ -131,13 +148,21 @@ export class LockstepRunner {
   private open(): void {
     this.transport?.close();
     this.transport = this.connect({
-      onMessage: (msg) => this.handle(msg),
-      onClose: () => this.handleClose(),
+      onMessage: (msg) => {
+        if (!this.stopped) this.handle(msg);
+      },
+      onClose: (refusal) => {
+        if (!this.stopped) this.handleClose(refusal);
+      },
     });
   }
 
-  private handleClose(): void {
+  private handleClose(refusal: string | null): void {
     this.transport = null;
+    if (refusal !== null) {
+      this.dispatch({ type: 'refused', reason: refusal });
+      return;
+    }
     this.dispatch({ type: 'closed', now: Date.now() });
     const conn = this.store.conn;
     if (conn.phase !== 'offline') return;

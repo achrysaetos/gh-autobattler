@@ -110,6 +110,9 @@ export interface RoomSummary {
   fighters: RoomFighter[];
 }
 
+// The client treats any close code from 4000 to 4999 as final and does not reconnect.
+export const WS_CLOSE_ROOM_NOT_FOUND = 4404;
+
 export interface RoomsResponse {
   live: RoomSummary[];
   recent: RoomSummary[];
