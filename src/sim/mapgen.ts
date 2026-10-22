@@ -92,7 +92,7 @@ function paintTerrain(map: Omit<MapDef, 'terrain'>, factions: number, seed: numb
       const edge = 1 - Math.max(0, (r - radius * 0.93) / (radius * 0.07));
       const blocker = fbm(seed, sx / 150, sy / 150) * edge;
       const wood = fbm(seed + 7919, sx / 110, sy / 110);
-      if (obstacles && blocker > 0.66) {
+      if (obstacles && blocker > 0.625) {
         terrain[i] = fbm(seed + 104729, sx / 260, sy / 260) > 0.5 ? Terrain.Water : Terrain.Rock;
       } else if (wood > 0.6) {
         terrain[i] = Terrain.Forest;

@@ -8,9 +8,10 @@ export interface Vec {
 }
 
 export const SEPARATION_RADIUS = 10;
-const SEPARATION_GAIN = 0.9;
+const SEPARATION_GAIN = 1.5;
 const MAX_PUSH_FACTOR = 1.4;
-const DEADBAND2 = 0.05 * 0.05;
+// Below this a unit stays put: crowds settle instead of shimmering under tiny pushes.
+const DEADBAND2 = 0.25 * 0.25;
 
 export function towards(out: Vec, fromX: number, fromY: number, toX: number, toY: number): number {
   const dx = toX - fromX;

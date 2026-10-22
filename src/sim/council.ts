@@ -1,4 +1,5 @@
 import { UnitKind, type World } from './api.ts';
+import { CAPTURE_FULL } from './capture.ts';
 import { derived } from './derived.ts';
 import { cellAt } from './flowfield.ts';
 import type { Scratch } from './scratch.ts';
@@ -13,6 +14,7 @@ const DEFEND_VALUE = 1.6;
 const SPREAD_PENALTY = 0.6;
 const DISTANCE_SCALE = 500;
 const HYSTERESIS = 1.3;
+const CAPTURE_MOMENTUM = 3;
 
 function strengthOf(kind: UnitKind, hp: number): number {
   return hp * STATS[kind]!.strength;
@@ -123,7 +125,11 @@ export function runCouncil(world: World, s: Scratch, faction: number): void {
       const points = def.pointsPerSecond + OBJECTIVE_BONUS;
       let value: number;
       if (owned) value = enemy > 0 ? points * DEFEND_VALUE : (points * IDLE_HOLD_VALUE) / (1 + plannedCount[o]!);
-      else value = points;
+      else {
+        value = points;
+        const state = objectives[o]!;
+        if (state.capturer === faction) value *= 1 + (CAPTURE_MOMENTUM * state.progress) / CAPTURE_FULL;
+      }
       const ratio = (friendNear[o]! + plannedStr[o]! + strength) / (enemy + 1);
       const feasible = ratio >= 1.2 ? 1 : ratio < 0.5 ? 0.05 : (ratio - 0.4) / 0.8;
       const spread = 1 / (1 + SPREAD_PENALTY * plannedCount[o]!);

@@ -15,6 +15,8 @@ const UNSCREENED_PACE = 0.45;
 const MELEE_HOLD = 0.75;
 const HOLD_FRACTION = 0.55;
 const NEUTRAL_LEASH = 140;
+const ARRIVAL_EASE = 30;
+const LANE_BIAS = 0.12;
 
 const dir: Vec = { x: 0, y: 0 };
 const push: Vec = { x: 0, y: 0 };
@@ -86,8 +88,19 @@ export function updateUnits(world: World, s: Scratch, ev: TickEvents): void {
       const dx = o.x - u.x;
       const dy = o.y - u.y;
       const holdRadius = o.radius * HOLD_FRACTION;
-      if (dx * dx + dy * dy <= holdRadius * holdRadius) moving = false;
-      else flowDirection(dir, map, d.flow[objective]!, u.x, u.y, o.x, o.y);
+      const remaining = Math.sqrt(dx * dx + dy * dy) - holdRadius;
+      if (remaining <= 0) moving = false;
+      else {
+        flowDirection(dir, map, d.flow[objective]!, u.x, u.y, o.x, o.y);
+        pace = Math.min(1, remaining / ARRIVAL_EASE + 0.25);
+        // Each unit marches in one of five lanes so columns have width.
+        const lane = ((u.id % 5) - 2) * LANE_BIAS;
+        const lx = dir.x - dir.y * lane;
+        const ly = dir.y + dir.x * lane;
+        const m = Math.sqrt(lx * lx + ly * ly);
+        dir.x = lx / m;
+        dir.y = ly / m;
+      }
     }
 
     const cell = cellAt(map, u.x, u.y);

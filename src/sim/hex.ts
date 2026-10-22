@@ -13,7 +13,7 @@ export function hexesInDisc(radius: number, size: number): Hex[] {
   for (let r = -reach; r <= reach; r++) {
     for (let q = -reach * 2; q <= reach * 2; q++) {
       const { x, y } = hexCenter(q, r, size);
-      if (x * x + y * y <= (radius - size * 0.4) * (radius - size * 0.4)) hexes.push({ q, r, x, y });
+      if (x * x + y * y <= (radius + size * 0.5) * (radius + size * 0.5)) hexes.push({ q, r, x, y });
     }
   }
   return hexes;
