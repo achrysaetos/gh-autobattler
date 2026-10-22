@@ -78,7 +78,8 @@ function nextRandom(world: World): number {
 }
 
 export function generateMap(params: RoundParams): MapDef {
-  const F = Math.max(1, params.factionCount);
+  const F = params.factionCount;
+  const layout = Math.max(2, F);
   const radius = Math.max(700, Math.sqrt((params.expectedUnits * 1100) / Math.PI));
   const navCols = Math.ceil((2 * radius) / NAV_CELL) + 2;
   const navRows = navCols;
@@ -86,8 +87,8 @@ export function generateMap(params: RoundParams): MapDef {
   const originY = -(navRows * NAV_CELL) / 2;
 
   const objectives: ObjectiveDef[] = [];
-  const sector = (Math.PI * 2) / F;
-  const garrison = Math.max(4, Math.round(params.expectedUnits / (F * 14)));
+  const sector = (Math.PI * 2) / layout;
+  const garrison = Math.max(4, Math.round(params.expectedUnits / (layout * 14)));
   for (let i = 0; i < F; i++) {
     const a = i * sector - Math.PI / 2;
     objectives.push({
@@ -101,7 +102,7 @@ export function generateMap(params: RoundParams): MapDef {
       garrison: 0,
     });
   }
-  for (let i = 0; i < F; i++) {
+  for (let i = 0; i < layout; i++) {
     const a = i * sector - Math.PI / 2;
     const near = a + sector * 0.12;
     const between = a + sector * 0.5;
